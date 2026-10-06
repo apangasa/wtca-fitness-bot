@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.env
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+out/
+
+# Local-only: VM access tooling and Claude Code settings
+tools/
+.claude/

@@ -1,0 +1,8 @@
+node_modules
+dist
+out
+.env
+.git
+*.md
+*.db
+*.bat
