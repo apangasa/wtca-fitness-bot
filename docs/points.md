@@ -24,7 +24,9 @@ An entry stores an exercise, total reps (or a distance), an optional weight and 
 
 ## Prices at a glance
 
-Bodyweight and cardio prices (rounded for reading; bodyweight prices are the 150 lb row):
+Bodyweight and cardio prices. Bodyweight prices follow your weight class: enter your body weight to see them (the table below is the 150 lb row).
+
+<div data-price-widget data-rows="all"></div>
 
 | Exercise | Price |
 |---|---|
@@ -43,6 +45,8 @@ Bodyweight and cardio prices (rounded for reading; bodyweight prices are the 150
 | Run | 521 per mile |
 | Swim | 103 per 100 yd |
 | Flight of stairs, ankle alphabet | 0 (tracked, no points) |
+
+<script type="module" src="assets/price-widget.js"></script>
 
 Examples of weighted-lift prices per rep, at the 150 lb reference body weight:
 

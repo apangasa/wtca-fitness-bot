@@ -13,11 +13,12 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "register": "tsx src/scripts/register-commands.ts",
-    "check": "tsc --noEmit && tsx src/scripts/check-commands.ts && tsx src/scripts/check-weights.ts && tsx src/scripts/check-weights.ts reopen",
+    "check": "tsc --noEmit && tsx src/scripts/check-commands.ts && tsx src/scripts/check-weights.ts && tsx src/scripts/check-weights.ts reopen && tsx src/scripts/check-docs-widget.ts",
     "preview": "tsx src/scripts/preview-charts.ts",
     "queue": "tsx src/scripts/queue.ts",
     "approve": "tsx src/scripts/approve-exercise.ts",
-    "postinstall": "playwright install chromium"
+    "postinstall": "playwright install chromium",
+    "docs:data": "tsx src/scripts/build-docs-data.ts"
   },
   "dependencies": {
     "better-sqlite3": "^11.5.0",

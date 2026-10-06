@@ -33,6 +33,10 @@ Notes:
 
 ## Price by body weight
 
+Enter a body weight to see every price at that weight.
+
+<div data-price-widget></div>
+
 The Novice and Intermediate reps are read from the person's row (each interpolated linearly in body weight between Strength Level's 10 lb rows, then turned into a price). Every bodyweight exercise follows its own row, with no exceptions; run and swim do not depend on body weight.
 
 | Exercise | 120 lb | 150 lb | 200 lb |
@@ -49,6 +53,8 @@ The Novice and Intermediate reps are read from the person's row (each interpolat
 | Assisted ab-roll | 13.44 | 9.14 | 8.64 |
 | Burpee | 10.00 | 9.43 | 9.87 |
 | Leg raise | 9.09 | 8.87 | 9.74 |
+
+<script type="module" src="assets/price-widget.js"></script>
 
 Two prices are not the plain mean of their own table:
 
