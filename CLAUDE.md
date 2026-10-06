@@ -20,7 +20,7 @@ It is read-only. The `out/*.db` files are throwaway rehearsal copies that go sta
 
 ## Pricing and scoring
 
-Points are `price × reps`, scaled by weight for lifts. A price lives on the exercise row and each entry stores only reps and weight, so changing a price reprices all history.
+Points are reps × a price per rep from the exercise's `pricing` record: a flat price, or a curve over the logged weight and the person's `/weight`. The record lives on the exercise row and each entry stores only reps and weight, so changing a record reprices all history.
 
 - **Method and every locked number:** read `docs/points.md` (the overview) and the page it points to for the exercise in question (bodyweight, lifts, cardio, body weight, or pricing a new exercise) before pricing or discussing any exercise.
 - **The user decides every number.** They test each derivation against data. Bring sourced figures (Strength Level standards, studies) and show the arithmetic; present assumptions as assumptions.
