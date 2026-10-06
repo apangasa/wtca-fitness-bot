@@ -72,7 +72,8 @@ export const LIFT_1RM: Record<string, [number, number, number, number]> = {
   inclinecurls: [34, 52, 76, 102],
   triceppushdown: [38, 67, 107, 157],
   lateralraise: [18, 36, 64, 98],
-  legcurl: [72, 112, 163, 224], // seated
+  seatedlegcurl: [72, 112, 163, 224],
+  lyinglegcurl: [54, 86, 127, 177],
   cableflies: [12, 34, 67, 112],
   cablecrunch: [48, 85, 134, 196],
   inclinedumbbellpress: [76, 108, 148, 192],

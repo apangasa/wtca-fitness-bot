@@ -62,8 +62,9 @@ export const SEED_EXERCISES: ExerciseSeed[] = [
   { key: 'triceppushdown', label: 'Tricep Pushdown', unit: 'reps', weightNote: 'stack setting' },
   { key: 'cableflies', label: 'Cable Flies', unit: 'reps', weightNote: 'both sides combined' },
   { key: 'lateralraise', label: 'Lateral Raise', unit: 'reps', weightNote: 'both dumbbells combined' },
-  // One lift for every leg curl machine; priced from the seated table.
-  { key: 'legcurl', label: 'Leg Curl', unit: 'reps', weightNote: 'machine stack setting' },
+  // Seated and lying machines are different lifts with their own tables (cable and standing curls are closer to lying).
+  { key: 'seatedlegcurl', label: 'Seated Leg Curl', unit: 'reps', weightNote: 'machine stack setting' },
+  { key: 'lyinglegcurl', label: 'Lying Leg Curl', unit: 'reps', weightNote: 'machine stack setting' },
   { key: 'assistedpullups', label: 'Assisted Pull-ups', unit: 'reps', weightNote: 'assistance, not your weight' },
   { key: 'swim', label: 'Swim', unit: 'yd' },
   // Kneeling rope cable crunch only; ab machines need their own lift.

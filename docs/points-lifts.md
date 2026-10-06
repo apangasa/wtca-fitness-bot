@@ -93,6 +93,8 @@ The curve is built from power laws between anchors, so rescaling every weight by
 
 Every lift in the bot has a Strength Level 1RM table and is priced the same way, including the cable crunch (48 / 85 / 134 / 196 lb), which pays 0.8 a rep at a 20 lb stack, 2.0 at 30 lb, 4.1 at 40 lb and 10.9 at 60 lb. Whether abs follow the usual reps-against-load curve does not matter, because logged sets are placed on Strength Level's own scale. Ab machines are a separate lift.
 
+Seated and lying leg curls are separate lifts with their own Strength Level tables (150 lb row: seated 72 / 112 / 163 / 224 lb, lying 54 / 86 / 127 / 177 lb), because the same stack setting is a different effort on each; a cable or standing curl is closer to lying. Every leg curl logged before the split was priced on the seated table and is now a seated leg curl.
+
 The 1RM tables used (Beginner / Novice / Intermediate / Advanced, men at 150 lb; dumbbell lifts in the combined convention) are in `src/strengthLevelTables.ts` with their source and read date.
 
 ## Limits

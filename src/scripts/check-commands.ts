@@ -28,12 +28,12 @@ if (tooLong.length || illegal.length) fail(`invalid command names: ${[...tooLong
 // Discord allows 100 guild commands; keep headroom.
 if (names.length > 60) fail(`${names.length} commands is too close to Discord's limit of 100`);
 
-for (const gone of ['log', 'lift', 'set', 'config', 'abcrunch', 'addexercise', 'removeexercise', 'leg-press']) {
+for (const gone of ['log', 'lift', 'set', 'config', 'abcrunch', 'addexercise', 'removeexercise', 'leg-press', 'legcurl']) {
   if (commands.has(gone)) fail(`/${gone} should not exist`);
 }
 const LIFTS = [
   'benchpress', 'narrowbench', 'dbbench', 'overheadpress', 'legpress', 'latpulldown', 'row', 'deadlift',
-  'rdl', 'bicepcurls', 'triceppushdown', 'cableflies', 'lateralraise', 'legcurl', 'assistedpullups', 'cablecrunch',
+  'rdl', 'bicepcurls', 'triceppushdown', 'cableflies', 'lateralraise', 'seatedlegcurl', 'lyinglegcurl', 'assistedpullups', 'cablecrunch',
 ];
 for (const kept of ['undo', 'today', 'new', 'queue', 'run', 'swim', 'pushups', 'squats', 'leaderboard', 'me', 'seasons', 'weight', ...LIFTS]) {
   if (!commands.has(kept)) fail(`/${kept} is missing`);

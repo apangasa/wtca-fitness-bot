@@ -146,6 +146,15 @@ function migrate(conn: Database.Database): void {
     renameKey('abcrunch', 'cablecrunch');
     conn.prepare('UPDATE exercises SET label = ? WHERE key = ?').run('Cable Crunch', 'cablecrunch');
   }
+  // Leg curl split into seated and lying. Every entry logged so far was priced from the seated table, so they move to seated.
+  if (hasKey('legcurl') && !hasKey('seatedlegcurl')) {
+    renameKey('legcurl', 'seatedlegcurl');
+    conn.prepare('UPDATE exercises SET label = ? WHERE key = ?').run('Seated Leg Curl', 'seatedlegcurl');
+    // Keep the live pricing record (it may have been tuned); only its table name changes.
+    conn
+      .prepare(`UPDATE exercises SET pricing = REPLACE(pricing, '"table":"legcurl"', '"table":"seatedlegcurl"') WHERE key = ?`)
+      .run('seatedlegcurl');
+  }
 
   // After the renames so a renamed key is priced too.
   if (version < 4) {

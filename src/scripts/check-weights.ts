@@ -38,11 +38,11 @@ if (!reopen) {
     INSERT INTO exercises VALUES ('pushups','Push-ups','reps',0,1,6), ('squats','Squats','reps',5,1,6),
                                  ('lunges','Lunges','reps',10,1,3), ('leg-press','Leg Press','reps',11,1,4),
                                  ('abcrunch','Ab Crunch','reps',12,1,3), ('run','Run','mi',6,1,0),
-                                 ('burpees','Burpees','reps',13,1,18), ('wallsit','Wall Sit','reps',14,1,5);
+                                 ('burpees','Burpees','reps',13,1,18), ('wallsit','Wall Sit','reps',14,1,5), ('legcurl','Leg Curl','reps',15,1,0);
     INSERT INTO entries (guild_id,user_id,exercise_key,day_key,amount,created_at) VALUES
       ('g1','u-old','squats','2026-09-10',50,'x'), ('g1','u-old','leg-press','2026-09-24',40,'x'),
       ('g1','u-old','lunges','2026-09-20',30,'x'), ('g1','u-old','abcrunch','2026-09-30',12,'x'), ('g1','u-old','run','2026-09-12',3,'x'),
-      ('g1','u-old','wallsit','2026-09-11',10,'x');
+      ('g1','u-old','wallsit','2026-09-11',10,'x'), ('g1','u-old','legcurl','2026-09-26',10,'x');
   `);
   old.close();
 }
@@ -84,6 +84,12 @@ check('leg press is now legpress, a lift priced by its 1RM table', legPress.pric
 const moved = q.dayTotals(GUILD, '2026-09-24')[0];
 check('its history moved with it (40 reps)', moved?.exerciseKey === 'legpress' && moved.total === 40);
 check('the old /abcrunch key is gone', q.getExercise('abcrunch') === null);
+check('the old /legcurl key is gone and its entry moved to seated', q.getExercise('legcurl') === null && q.dayTotals(GUILD, '2026-09-26')[0]?.exerciseKey === 'seatedlegcurl');
+const seated = q.getExercise('seatedlegcurl')!;
+const lying = q.getExercise('lyinglegcurl')!;
+check('seated leg curl: renamed row keeps a lift record on the seated table', seated.label === 'Seated Leg Curl' && seated.pricing?.kind === 'lift' && seated.pricing.table === 'seatedlegcurl' && seated.refWeight !== null, JSON.stringify(seated));
+check('lying leg curl is seeded on its own table with the 150 lb row 54/86/127/177', lying.label === 'Lying Leg Curl' && lying.pricing?.kind === 'lift' && lying.pricing.table === 'lyinglegcurl' && lying.pricing.oneRM.join() === '54,86,127,177' && lying.refWeight !== null, JSON.stringify(lying));
+check('the same stack weight pays more on the lying curl (its standards are lower, so the weight is rarer)', model('lyinglegcurl', 100) > model('seatedlegcurl', 100));
 const cable = q.getExercise('cablecrunch')!;
 check('abcrunch became cablecrunch (Cable Crunch, a lift record)', cable.label === 'Cable Crunch' && cable.pricing?.kind === 'lift' && cable.refWeight !== null, JSON.stringify(cable));
 const cableMoved = q.dayTotals(GUILD, '2026-09-30')[0];
@@ -98,7 +104,7 @@ const burpees = q.getExercise('burpees')!;
 check('burpees repriced 18 -> 9.4286 (unrounded)', burpees.pricing?.kind === 'flat' && near(burpees.pricing.p, implied(10, 35)) && burpees.refWeight === null, JSON.stringify(burpees));
 check('the new lifts were added with records', ['benchpress', 'assistedpullups', 'lateralraise'].every((k) => q.getExercise(k)?.pricing));
 // (dips, leg raise, singlelegpress, facepulls, hammercurls, bentoverrow, inclinecurls exist only in the live database, not in the seed)
-check('every seeded lift has a lift record', ['benchpress', 'narrowbench', 'dbbench', 'overheadpress', 'legpress', 'latpulldown', 'row', 'deadlift', 'rdl', 'bicepcurls', 'triceppushdown', 'lateralraise', 'legcurl', 'cableflies', 'cablecrunch'].every((k) => q.getExercise(k)?.pricing?.kind === 'lift'));
+check('every seeded lift has a lift record', ['benchpress', 'narrowbench', 'dbbench', 'overheadpress', 'legpress', 'latpulldown', 'row', 'deadlift', 'rdl', 'bicepcurls', 'triceppushdown', 'lateralraise', 'seatedlegcurl', 'lyinglegcurl', 'cableflies', 'cablecrunch'].every((k) => q.getExercise(k)?.pricing?.kind === 'lift'));
 const orders = q.listExercises().map((e) => e.sortOrder);
 check('sort order has no collisions', new Set(orders).size === orders.length, orders.join(','));
 
@@ -161,7 +167,8 @@ const cases: { key: string; weight: number | null; reps: number; perRep: number 
   { key: 'deadlift', weight: 165, reps: 1, perRep: model('deadlift', 165) },
   { key: 'latpulldown', weight: 150, reps: 1, perRep: model('latpulldown', 150) },
   { key: 'cablecrunch', weight: 40, reps: 1, perRep: model('cablecrunch', 40) },
-  { key: 'legcurl', weight: 100, reps: 1, perRep: model('legcurl', 100) },
+  { key: 'seatedlegcurl', weight: 100, reps: 1, perRep: model('seatedlegcurl', 100) },
+  { key: 'lyinglegcurl', weight: 100, reps: 1, perRep: model('lyinglegcurl', 100) },
   { key: 'narrowbench', weight: 135, reps: 1, perRep: model('narrowbench', 135) },
   { key: 'pullups', weight: 25, reps: 1, perRep: model('pullups', 25) },
   { key: 'chinups', weight: 25, reps: 1, perRep: model('chinups', 25) },
