@@ -41,8 +41,8 @@ Fill in the four values. The rest have working defaults:
 |---|---|---|
 | `TZ_NAME` | `America/New_York` | Timezone for day boundaries and recap timing |
 | `DAY_CUTOFF_HOUR` | `4` | A set logged before 4am counts toward the previous day |
-| `RECAP_TIME` | `23:00` | When the daily recap posts |
-| `DB_PATH` | `%LOCALAPPDATA%\wtca-fitness-bot\fitness.db` | Where the database lives |
+| `RECAP_TIME` | cutoff + 5 min (`04:05`) | When the daily recap posts; must be at or after the cutoff |
+| `DB_PATH` | per-user data folder (see Operations) | Where the database lives |
 
 ## 3. Install and run
 
@@ -147,21 +147,12 @@ Useful for checking a restyle. Does not touch the real database.
 
 ---
 
-## Operational notes
+## Operations
 
-**The database is deliberately outside OneDrive.** OneDrive's sync agent copies
-files mid-write, which corrupts live SQLite databases. Don't move `DB_PATH` into
-a synced folder. To back it up, stop the bot first, then copy the `.db` file.
+In production the bot runs as a systemd service on a cloud VM, set up by [deploy/](deploy/README.md). The database is `/var/lib/wtca-fitness-bot/fitness.db`, outside the app directory, so a deploy never touches it. Deploys, backups, the exercise queue and querying the live database are in [deploy/README.md](deploy/README.md).
 
-**This repo is inside OneDrive**, which means `node_modules` gets synced — a lot
-of small files. If OneDrive gets slow, right-click the `wtca-fitness-bot` folder
-→ **Always keep on this device** off, or move the project to `C:\dev\`.
-
-**The bot is only online while the process is running.** Commands fail silently
-in Discord ("application did not respond") when your PC is asleep. Logs are
-missed, not queued.
-
-**Moving to a cloud host later:** the only host-specific pieces are `DB_PATH`
-(point it at a mounted volume) and the Chromium download, which is why
-`playwright install chromium` is wired into `postinstall`. Nothing else assumes
-Windows.
+- **One instance per Discord token.** Two running bots would both answer every command, so stop any local copy before the production one starts.
+- **Offline means missed logs.** While the process is down, commands fail in Discord ("application did not respond") and nothing is queued.
+- **Local runs** use the default `DB_PATH` (`%LOCALAPPDATA%\wtca-fitness-bot\fitness.db` on Windows, `~/.local/share/wtca-fitness-bot/fitness.db` elsewhere). Keep it out of a cloud-synced folder: sync agents copy SQLite files mid-write and can corrupt them.
+- **Backups:** `node deploy/snapshot-db.mjs <out.db>` writes a consistent copy (`VACUUM INTO`) while the bot runs. A plain file copy can miss writes still in the WAL.
+- **Chromium** for charts is downloaded by `postinstall`; it is the only host-specific install step.
