@@ -31,11 +31,7 @@ Developer Mode**, then right-click to copy:
 
 ## 2. Configure
 
-```bash
-copy .env.example .env
-```
-
-Fill in the four values. The rest have working defaults:
+Create `.env` from `.env.example` and fill in the four values. The rest have working defaults:
 
 | Variable | Default | Meaning |
 |---|---|---|
@@ -63,8 +59,6 @@ so they appear immediately rather than taking up to an hour like global ones.
 ```bash
 npm run serve
 ```
-
-Or just double-click **`run.bat`**.
 
 ---
 
