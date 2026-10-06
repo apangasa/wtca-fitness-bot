@@ -75,6 +75,8 @@ export const LIFT_1RM: Record<string, [number, number, number, number]> = {
   legcurl: [72, 112, 163, 224], // seated
   cableflies: [12, 34, 67, 112],
   cablecrunch: [48, 85, 134, 196],
+  inclinedumbbellpress: [76, 108, 148, 192],
+  reardeltfly: [51, 84, 126, 178], // machine reverse fly (stack setting)
 };
 
 export interface BodyweightSpec {
