@@ -55,6 +55,7 @@ export const SEED_EXERCISES: ExerciseSeed[] = [
   { key: 'overheadpress', label: 'Overhead Press', unit: 'reps', weightNote: 'total load' },
   { key: 'legpress', label: 'Leg Press', unit: 'reps', weightNote: 'total load on the sled' },
   { key: 'latpulldown', label: 'Lat Pulldown', unit: 'reps', weightNote: 'stack setting' },
+  { key: 'reversegriplatpulldown', label: 'Reverse Grip Lat Pulldown', unit: 'reps', weightNote: 'stack setting' },
   // A pulley/lever machine whose stack number is not the handle load; kept apart so it can be priced on its own.
   { key: 'machinelatpulldown', label: 'Machine Lat Pulldown', unit: 'reps', weightNote: 'stack setting' },
   { key: 'row', label: 'Row', unit: 'reps', weightNote: 'total load' },

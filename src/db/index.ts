@@ -227,6 +227,13 @@ function migrateAfterSeed(conn: Database.Database): void {
     conn.pragma('user_version = 7');
     invalidateScoring();
   }
+  if (version < 8) {
+    // Migration 8: everything a player logged as lat pulldown was reverse grip, so it moves to the reverse grip lift. Later /latpulldown entries stay where they are.
+    conn
+      .prepare("UPDATE entries SET exercise_key = 'reversegriplatpulldown' WHERE exercise_key = 'latpulldown' AND user_id = ?")
+      .run('0');
+    conn.pragma('user_version = 8');
+  }
 }
 
 function seedExercises(conn: Database.Database): void {

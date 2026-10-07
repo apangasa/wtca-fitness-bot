@@ -34,7 +34,7 @@ if (!reopen) {
                             active INTEGER NOT NULL DEFAULT 1, points_per_rep REAL NOT NULL DEFAULT 0);
     CREATE TABLE entries (id INTEGER PRIMARY KEY AUTOINCREMENT, guild_id TEXT NOT NULL, user_id TEXT NOT NULL,
                           exercise_key TEXT NOT NULL, day_key TEXT NOT NULL, amount REAL NOT NULL, created_at TEXT NOT NULL);
-    INSERT INTO users VALUES ('u-old', 'Riley', 0, '2026-09-01'), ('0', 'a player', 1, '2026-09-02');
+    INSERT INTO users VALUES ('u-old', 'Riley', 0, '2026-09-01'), ('0', 'a player', 1, '2026-09-02'), ('0', 'a player', 2, '2026-09-03');
     INSERT INTO exercises VALUES ('pushups','Push-ups','reps',0,1,6), ('squats','Squats','reps',5,1,6),
                                  ('lunges','Lunges','reps',10,1,3), ('leg-press','Leg Press','reps',11,1,4),
                                  ('abcrunch','Ab Crunch','reps',12,1,3), ('run','Run','mi',6,1,0),
@@ -43,7 +43,7 @@ if (!reopen) {
       ('g1','u-old','squats','2026-09-10',50,'x'), ('g1','u-old','leg-press','2026-09-24',40,'x'),
       ('g1','u-old','lunges','2026-09-20',30,'x'), ('g1','u-old','abcrunch','2026-09-30',12,'x'), ('g1','u-old','run','2026-09-12',3,'x'),
       ('g1','u-old','wallsit','2026-09-11',10,'x'), ('g1','u-old','legcurl','2026-09-26',10,'x'),
-      ('g1','u-old','latpulldown','2026-09-28',8,'x'), ('g1','0','latpulldown','2026-09-28',5,'x');
+      ('g1','u-old','latpulldown','2026-09-28',8,'x'), ('g1','0','latpulldown','2026-09-28',5,'x'), ('g1','0','latpulldown','2026-09-30',6,'x');
   `);
   old.close();
 }
@@ -58,6 +58,7 @@ const { formatPoints } = await import('../exercises.js');
 const model = (key: string, weight: number | null): number => buildCurve(catalogPricing(key)!)(weight);
 const userVersion = (): number => db().pragma('user_version', { simple: true }) as number;
 const PLAYER_A = '0';
+const PLAYER_B = '0';
 const keysOn = (user: string, d: string): string =>
   (db().prepare('SELECT exercise_key FROM entries WHERE user_id = ? AND day_key = ?').all(user, d) as { exercise_key: string }[]).map((e) => e.exercise_key).join();
 
@@ -66,8 +67,9 @@ if (reopen) {
   check('reopen: a curve tuned in the database survives a restart', JSON.stringify(bench.pricing) === JSON.stringify({ kind: 'lift', oneRM: [100, 140, 190, 240] }), JSON.stringify(bench.pricing));
   check('reopen: a hand-set run price is not put back to 521 by the migration', q.getExercise('run')!.pricing?.kind === 'flat' && (q.getExercise('run')!.pricing as { p: number }).p === 777);
   check('reopen: burpees tuned to 11 are not repriced again', (q.getExercise('burpees')!.pricing as { p: number }).p === 11);
-  check('reopen: the migration did not run again (user_version 7, an emptied record stays empty)', userVersion() === 7 && q.getExercise('abrolls')!.pricing === null);
+  check('reopen: the migration did not run again (user_version 8, an emptied record stays empty)', userVersion() === 8 && q.getExercise('abrolls')!.pricing === null);
   check('reopen: the lat pulldown move ran once (the earlier entry stays on the machine lift, a later /latpulldown stays plain)', keysOn(PLAYER_A, '2026-09-28') === 'machinelatpulldown' && keysOn(PLAYER_A, '2026-09-29') === 'latpulldown', `${keysOn(PLAYER_A, '2026-09-28')} / ${keysOn(PLAYER_A, '2026-09-29')}`);
+  check("reopen: a player's lat pulldown stays on the reverse grip lift", keysOn(PLAYER_B, '2026-09-30') === 'reversegriplatpulldown', keysOn(PLAYER_B, '2026-09-30'));
   const machineRe = q.getExercise('machinelatpulldown')!;
   check('reopen: migration 7 moved the live-style machine lat pulldown record to the doubled anchors (and its reference weight)', machineRe.pricing?.kind === 'lift' && machineRe.pricing.oneRM.join() === '178,248,332,430' && machineRe.refWeight !== null && near(machineRe.refWeight, (29 / 36) * 248, 1e-9), JSON.stringify(machineRe));
   check('reopen: nothing was duplicated', q.listExercises().filter((e) => e.key === 'benchpress').length === 1);
@@ -128,12 +130,15 @@ const oldRun = q.dayTotals(GUILD, '2026-09-12').find((t) => t.exerciseKey === 'r
 check('the 3-mile run logged before was backfilled to 3 x 521.14', !!oldRun && near(oldRun.points, 3 * RUN), String(oldRun?.points));
 const swimEx = q.getExercise('swim');
 check('swim exists at 1.0286 per yard', swimEx?.pricing?.kind === 'flat' && near(swimEx.pricing.p, SWIM) && swimEx.unit === 'yd', JSON.stringify(swimEx));
-check('the one-shot upgrades are recorded (user_version 7)', userVersion() === 7);
+check('the one-shot upgrades are recorded (user_version 8)', userVersion() === 8);
 const machineLat = q.getExercise('machinelatpulldown')!;
 check('machine lat pulldown is seeded as a lift on the doubled lat pulldown anchors and its own table', machineLat.label === 'Machine Lat Pulldown' && machineLat.pricing?.kind === 'lift' && machineLat.pricing.table === 'machinelatpulldown' && machineLat.pricing.oneRM.join() === '178,248,332,430' && machineLat.refWeight !== null, JSON.stringify(machineLat));
 check('a stack setting of 2w on the machine lat pulldown pays what w pays on the plain lat pulldown, at 150 lb and at 220 lb', [150, 220].every((bw) => [50, 72.5, 90, 100].every((w) => near(buildCurve(catalogPricing('machinelatpulldown')!, bw)(2 * w), buildCurve(catalogPricing('latpulldown')!, bw)(w), 1e-9))));
 check("a player's earlier lat pulldown moved to the machine lift", keysOn(PLAYER_A, '2026-09-28') === 'machinelatpulldown', keysOn(PLAYER_A, '2026-09-28'));
 check("another person's lat pulldown stayed on the plain lift", keysOn('u-old', '2026-09-28') === 'latpulldown', keysOn('u-old', '2026-09-28'));
+const reverseLat = q.getExercise('reversegriplatpulldown')!;
+check('reverse grip lat pulldown is seeded as a lift on its own table with the 150 lb row 98/136/183/236', reverseLat.label === 'Reverse Grip Lat Pulldown' && reverseLat.pricing?.kind === 'lift' && reverseLat.pricing.table === 'reversegriplatpulldown' && reverseLat.pricing.oneRM.join() === '98,136,183,236' && reverseLat.refWeight !== null, JSON.stringify(reverseLat));
+check("a player's earlier lat pulldown moved to the reverse grip lift", keysOn(PLAYER_B, '2026-09-30') === 'reversegriplatpulldown', keysOn(PLAYER_B, '2026-09-30'));
 // Logged after the migration: must still be there as a plain lat pulldown when the reopen run starts.
 q.addEntry(GUILD, PLAYER_A, 'latpulldown', '2026-09-29', 3, 100);
 

@@ -32,7 +32,7 @@ for (const gone of ['log', 'lift', 'set', 'config', 'abcrunch', 'addexercise', '
   if (commands.has(gone)) fail(`/${gone} should not exist`);
 }
 const LIFTS = [
-  'benchpress', 'narrowbench', 'dbbench', 'overheadpress', 'legpress', 'latpulldown', 'machinelatpulldown', 'row', 'deadlift',
+  'benchpress', 'narrowbench', 'dbbench', 'overheadpress', 'legpress', 'latpulldown', 'machinelatpulldown', 'reversegriplatpulldown', 'row', 'deadlift',
   'rdl', 'bicepcurls', 'triceppushdown', 'cableflies', 'lateralraise', 'seatedlegcurl', 'lyinglegcurl', 'assistedpullups', 'cablecrunch', 'barbellbulgariansplitsquat', 'dbbulgariansplitsquat',
 ];
 for (const kept of ['undo', 'today', 'new', 'queue', 'run', 'swim', 'pushups', 'squats', 'leaderboard', 'me', 'seasons', 'weight', ...LIFTS]) {
