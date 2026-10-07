@@ -67,6 +67,9 @@ export const SEED_EXERCISES: ExerciseSeed[] = [
   // Seated and lying machines are different lifts with their own tables (cable and standing curls are closer to lying).
   { key: 'seatedlegcurl', label: 'Seated Leg Curl', unit: 'reps', weightNote: 'machine stack setting' },
   { key: 'lyinglegcurl', label: 'Lying Leg Curl', unit: 'reps', weightNote: 'machine stack setting' },
+  // Two lifts with their own Strength Level tables; neither counts body weight.
+  { key: 'barbellbulgariansplitsquat', label: 'Barbell Bulgarian Split Squat', unit: 'reps', weightNote: 'bar + plates' },
+  { key: 'dbbulgariansplitsquat', label: 'DB Bulgarian Split Squat', unit: 'reps', weightNote: 'both dumbbells combined' },
   { key: 'assistedpullups', label: 'Assisted Pull-ups', unit: 'reps', weightNote: 'assistance, not your weight' },
   { key: 'swim', label: 'Swim', unit: 'yd' },
   // Kneeling rope cable crunch only; ab machines need their own lift.

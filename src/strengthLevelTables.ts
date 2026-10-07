@@ -520,6 +520,54 @@ export const LIFT_TABLES: Record<string, Row[]> = {
 86/109/136/166
 88/112/139/170`),
   ),
+  // Bulgarian split squat, the page that does not name dumbbells (strengthlevel.com/strength-standards/bulgarian-split-squat/lb); external load only, body weight not included.
+  barbellbulgariansplitsquat: parse(`
+12/37/79/137
+16/45/91/152
+21/53/102/166
+26/61/113/180
+32/69/123/194
+37/77/134/207
+42/84/144/219
+48/92/154/232
+53/100/164/243
+59/107/173/255
+64/114/182/266
+70/122/191/277
+75/129/200/288
+80/136/209/298
+86/142/217/308
+91/149/226/318
+96/156/234/328
+101/162/242/337
+106/169/250/347
+111/175/257/356
+116/181/265/364`),
+  // Dumbbell Bulgarian split squat, per dumbbell on the page (strengthlevel.com/strength-standards/dumbbell-bulgarian-split-squat/lb).
+  dbbulgariansplitsquat: doubled(
+    parse(`
+13/26/45/70
+15/30/50/76
+18/33/55/81
+20/36/59/87
+22/40/63/92
+25/43/67/97
+27/46/71/101
+30/49/75/106
+32/52/78/110
+34/55/82/114
+37/58/85/118
+39/61/89/122
+41/63/92/126
+43/66/95/130
+45/69/98/134
+47/71/101/137
+49/74/104/141
+51/76/107/144
+53/78/110/147
+55/81/113/150
+57/83/116/153`),
+  ),
   reardeltfly: parse(`
 30/55/91/135
 35/63/100/146

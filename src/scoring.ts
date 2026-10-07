@@ -80,6 +80,8 @@ export const LIFT_1RM: Record<string, [number, number, number, number]> = {
   cablecrunch: [48, 85, 134, 196],
   inclinedumbbellpress: [76, 108, 148, 192],
   reardeltfly: [51, 84, 126, 178], // machine reverse fly (stack setting)
+  barbellbulgariansplitsquat: [32, 69, 123, 194],
+  dbbulgariansplitsquat: [44, 80, 126, 184], // 22/40/63/92 per dumbbell, doubled
 };
 
 export interface BodyweightSpec {

@@ -109,7 +109,7 @@ const burpees = q.getExercise('burpees')!;
 check('burpees repriced 18 -> 9.4286 (unrounded)', burpees.pricing?.kind === 'flat' && near(burpees.pricing.p, implied(10, 35)) && burpees.refWeight === null, JSON.stringify(burpees));
 check('the new lifts were added with records', ['benchpress', 'assistedpullups', 'lateralraise'].every((k) => q.getExercise(k)?.pricing));
 // (dips, leg raise, singlelegpress, facepulls, hammercurls, bentoverrow, inclinecurls exist only in the live database, not in the seed)
-check('every seeded lift has a lift record', ['benchpress', 'narrowbench', 'dbbench', 'overheadpress', 'legpress', 'latpulldown', 'row', 'deadlift', 'rdl', 'bicepcurls', 'triceppushdown', 'lateralraise', 'seatedlegcurl', 'lyinglegcurl', 'cableflies', 'cablecrunch'].every((k) => q.getExercise(k)?.pricing?.kind === 'lift'));
+check('every seeded lift has a lift record', ['benchpress', 'narrowbench', 'dbbench', 'overheadpress', 'legpress', 'latpulldown', 'row', 'deadlift', 'rdl', 'bicepcurls', 'triceppushdown', 'lateralraise', 'seatedlegcurl', 'lyinglegcurl', 'cableflies', 'cablecrunch', 'barbellbulgariansplitsquat', 'dbbulgariansplitsquat'].every((k) => q.getExercise(k)?.pricing?.kind === 'lift'));
 const orders = q.listExercises().map((e) => e.sortOrder);
 check('sort order has no collisions', new Set(orders).size === orders.length, orders.join(','));
 

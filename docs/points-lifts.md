@@ -97,6 +97,8 @@ Seated and lying leg curls are separate lifts with their own Strength Level tabl
 
 The machine lat pulldown (`/machinelatpulldown`) is a separate lift for a pulley/lever machine whose stack number is not the load at the handle. It is priced from the same lat pulldown table and anchors, so it pays exactly what a lat pulldown pays until a stack-to-handle ratio is decided and applied to its anchors. a player's lat pulldown entries up to 2026-10-07 were moved to it; a player's stay on the plain lat pulldown.
 
+Bulgarian split squat is two lifts, because Strength Level publishes two 1RM tables (150 lb row): the page that does not name dumbbells, priced as the barbell lift, at 32 / 69 / 123 / 194 lb, and the dumbbell page at 22 / 40 / 63 / 92 per dumbbell, 44 / 80 / 126 / 184 combined. They agree at Intermediate (123 against 126) and differ at the ends (Beginner 32 against 44, Advanced 194 against 184), so a light load pays more on the barbell table and a heavy one slightly more on the dumbbell table (60 lb: 16.4 against 12.7 a rep; 135 lb: 41.3 against 42.7). Neither table includes body weight, so a split squat with no load pays about 0, unlike the lunge; counting a share of body weight would need a sourced k.
+
 The 1RM tables used (Beginner / Novice / Intermediate / Advanced, men at 150 lb; dumbbell lifts in the combined convention) are in `src/strengthLevelTables.ts` with their source and read date.
 
 ## Limits

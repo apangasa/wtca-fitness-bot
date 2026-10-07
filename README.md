@@ -74,7 +74,7 @@ Every exercise is its own command, so the Discord picker autofills it.
 | `/run 3.1` | Miles run, 521 pts per mile. |
 | `/swim 1000 [unit]` | Distance swum, 103 pts per 100 yd. Yards by default, or pick meters. |
 | `/squats 20 [weight]` | Squats. Weight is added load in lb; leave it blank for a bodyweight squat. |
-| `/benchpress reps weight [sets]` | Every weighted lift works like this: bench, narrow grip bench, DB bench, overhead press, leg press, lat pulldown, row, deadlift, RDL, curls, pushdown, cable flies, lateral raise, seated leg curl, lying leg curl, cable crunch, assisted pull-ups. Weight is required. |
+| `/benchpress reps weight [sets]` | Every weighted lift works like this: bench, narrow grip bench, DB bench, overhead press, leg press, lat pulldown, row, deadlift, RDL, curls, pushdown, cable flies, lateral raise, seated leg curl, lying leg curl, barbell and DB Bulgarian split squat, cable crunch, assisted pull-ups. Weight is required. |
 | `/new name reps [weight] [sets] [notes]` | Log an exercise that is not in the list yet. It scores 0 and is queued; once an admin prices it, your entries backfill automatically. |
 | `/queue` | What is waiting to be priced, who logged it, and the weights used |
 | `/undo [exercise] [date]` | Removes your most recent entry (today, or a past day in the current season). |
