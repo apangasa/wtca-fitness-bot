@@ -34,7 +34,7 @@ if (!reopen) {
                             active INTEGER NOT NULL DEFAULT 1, points_per_rep REAL NOT NULL DEFAULT 0);
     CREATE TABLE entries (id INTEGER PRIMARY KEY AUTOINCREMENT, guild_id TEXT NOT NULL, user_id TEXT NOT NULL,
                           exercise_key TEXT NOT NULL, day_key TEXT NOT NULL, amount REAL NOT NULL, created_at TEXT NOT NULL);
-    INSERT INTO users VALUES ('u-old', 'Riley', 0, '2026-09-01');
+    INSERT INTO users VALUES ('u-old', 'Riley', 0, '2026-09-01'), ('0', 'a player', 1, '2026-09-02');
     INSERT INTO exercises VALUES ('pushups','Push-ups','reps',0,1,6), ('squats','Squats','reps',5,1,6),
                                  ('lunges','Lunges','reps',10,1,3), ('leg-press','Leg Press','reps',11,1,4),
                                  ('abcrunch','Ab Crunch','reps',12,1,3), ('run','Run','mi',6,1,0),
@@ -42,7 +42,8 @@ if (!reopen) {
     INSERT INTO entries (guild_id,user_id,exercise_key,day_key,amount,created_at) VALUES
       ('g1','u-old','squats','2026-09-10',50,'x'), ('g1','u-old','leg-press','2026-09-24',40,'x'),
       ('g1','u-old','lunges','2026-09-20',30,'x'), ('g1','u-old','abcrunch','2026-09-30',12,'x'), ('g1','u-old','run','2026-09-12',3,'x'),
-      ('g1','u-old','wallsit','2026-09-11',10,'x'), ('g1','u-old','legcurl','2026-09-26',10,'x');
+      ('g1','u-old','wallsit','2026-09-11',10,'x'), ('g1','u-old','legcurl','2026-09-26',10,'x'),
+      ('g1','u-old','latpulldown','2026-09-28',8,'x'), ('g1','0','latpulldown','2026-09-28',5,'x');
   `);
   old.close();
 }
@@ -56,13 +57,17 @@ const { formatPoints } = await import('../exercises.js');
 // Model price per rep for a catalog exercise at a weight.
 const model = (key: string, weight: number | null): number => buildCurve(catalogPricing(key)!)(weight);
 const userVersion = (): number => db().pragma('user_version', { simple: true }) as number;
+const PLAYER_A = '0';
+const keysOn = (user: string, d: string): string =>
+  (db().prepare('SELECT exercise_key FROM entries WHERE user_id = ? AND day_key = ?').all(user, d) as { exercise_key: string }[]).map((e) => e.exercise_key).join();
 
 if (reopen) {
   const bench = q.getExercise('benchpress')!;
   check('reopen: a curve tuned in the database survives a restart', JSON.stringify(bench.pricing) === JSON.stringify({ kind: 'lift', oneRM: [100, 140, 190, 240] }), JSON.stringify(bench.pricing));
   check('reopen: a hand-set run price is not put back to 521 by the migration', q.getExercise('run')!.pricing?.kind === 'flat' && (q.getExercise('run')!.pricing as { p: number }).p === 777);
   check('reopen: burpees tuned to 11 are not repriced again', (q.getExercise('burpees')!.pricing as { p: number }).p === 11);
-  check('reopen: the migration did not run again (user_version 5, an emptied record stays empty)', userVersion() === 5 && q.getExercise('abrolls')!.pricing === null);
+  check('reopen: the migration did not run again (user_version 6, an emptied record stays empty)', userVersion() === 6 && q.getExercise('abrolls')!.pricing === null);
+  check('reopen: the lat pulldown move ran once (the earlier entry stays on the machine lift, a later /latpulldown stays plain)', keysOn(PLAYER_A, '2026-09-28') === 'machinelatpulldown' && keysOn(PLAYER_A, '2026-09-29') === 'latpulldown', `${keysOn(PLAYER_A, '2026-09-28')} / ${keysOn(PLAYER_A, '2026-09-29')}`);
   check('reopen: nothing was duplicated', q.listExercises().filter((e) => e.key === 'benchpress').length === 1);
   check('reopen: a body weight set with /weight survives a restart', q.getUserWeight('u-wt') === 130 && q.userWeightLog().length >= 3);
   q.ensureUser('u-re', 'Reopen');
@@ -121,7 +126,14 @@ const oldRun = q.dayTotals(GUILD, '2026-09-12').find((t) => t.exerciseKey === 'r
 check('the 3-mile run logged before was backfilled to 3 x 521.14', !!oldRun && near(oldRun.points, 3 * RUN), String(oldRun?.points));
 const swimEx = q.getExercise('swim');
 check('swim exists at 1.0286 per yard', swimEx?.pricing?.kind === 'flat' && near(swimEx.pricing.p, SWIM) && swimEx.unit === 'yd', JSON.stringify(swimEx));
-check('the one-shot upgrades are recorded (user_version 5)', userVersion() === 5);
+check('the one-shot upgrades are recorded (user_version 6)', userVersion() === 6);
+const machineLat = q.getExercise('machinelatpulldown')!;
+check('machine lat pulldown is seeded as a lift on the lat pulldown anchors and table', machineLat.label === 'Machine Lat Pulldown' && machineLat.pricing?.kind === 'lift' && machineLat.pricing.table === 'machinelatpulldown' && machineLat.pricing.oneRM.join() === '89,124,166,215' && machineLat.refWeight !== null, JSON.stringify(machineLat));
+check('until a ratio is chosen it prices exactly like the plain lat pulldown, at 150 lb and at 220 lb', [150, 220].every((bw) => near(buildCurve(catalogPricing('machinelatpulldown')!, bw)(180), buildCurve(catalogPricing('latpulldown')!, bw)(180), 1e-9)));
+check("a player's earlier lat pulldown moved to the machine lift", keysOn(PLAYER_A, '2026-09-28') === 'machinelatpulldown', keysOn(PLAYER_A, '2026-09-28'));
+check("another person's lat pulldown stayed on the plain lift", keysOn('u-old', '2026-09-28') === 'latpulldown', keysOn('u-old', '2026-09-28'));
+// Logged after the migration: must still be there as a plain lat pulldown when the reopen run starts.
+q.addEntry(GUILD, PLAYER_A, 'latpulldown', '2026-09-29', 3, 100);
 
 // Per-rep prices straight from the curves (no database).
 const spec = (name: string, got: number, want: number, tol: number): void =>

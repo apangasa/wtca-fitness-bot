@@ -19,6 +19,7 @@ export function db(): Database.Database {
   handle.exec(SCHEMA);
   migrate(handle);
   seedExercises(handle);
+  migrateAfterSeed(handle);
   registerScoring(handle);
   return handle;
 }
@@ -203,6 +204,18 @@ function migrate(conn: Database.Database): void {
     `);
     conn.pragma('user_version = 5');
     invalidateScoring();
+  }
+}
+
+// One-shot data changes that need a seeded row, so they run after seedExercises; they continue migrate()'s user_version sequence.
+function migrateAfterSeed(conn: Database.Database): void {
+  const version = conn.pragma('user_version', { simple: true }) as number;
+  if (version < 6) {
+    // Migration 6: a player's lat pulldowns so far were on a pulley/lever machine, so they move to the machine lift. Later /latpulldown entries stay where they are.
+    conn
+      .prepare("UPDATE entries SET exercise_key = 'machinelatpulldown' WHERE exercise_key = 'latpulldown' AND user_id = ?")
+      .run('0');
+    conn.pragma('user_version = 6');
   }
 }
 

@@ -62,6 +62,8 @@ export const LIFT_1RM: Record<string, [number, number, number, number]> = {
   legpress: [139, 226, 340, 478], // horizontal leg press table
   singlelegpress: [74, 144, 244, 369],
   latpulldown: [89, 124, 166, 215],
+  // Same anchors as latpulldown until the machine's stack-to-handle ratio is decided.
+  machinelatpulldown: [89, 124, 166, 215],
   row: [86, 123, 168, 220],
   bentoverrow: [84, 120, 165, 217],
   deadlift: [160, 220, 293, 377],

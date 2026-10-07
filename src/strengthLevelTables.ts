@@ -543,6 +543,8 @@ export const LIFT_TABLES: Record<string, Row[]> = {
 120/168/227/294
 124/173/232/300`),
 };
+// The machine lat pulldown follows body weight on the same Strength Level table as the plain lat pulldown.
+LIFT_TABLES.machinelatpulldown = LIFT_TABLES.latpulldown!;
 
 export const REPS_TABLES: Record<string, Row[]> = {
   pullups: parse(`

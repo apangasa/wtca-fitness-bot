@@ -95,6 +95,8 @@ Every lift in the bot has a Strength Level 1RM table and is priced the same way,
 
 Seated and lying leg curls are separate lifts with their own Strength Level tables (150 lb row: seated 72 / 112 / 163 / 224 lb, lying 54 / 86 / 127 / 177 lb), because the same stack setting is a different effort on each; a cable or standing curl is closer to lying. Every leg curl logged before the split was priced on the seated table and is now a seated leg curl.
 
+The machine lat pulldown (`/machinelatpulldown`) is a separate lift for a pulley/lever machine whose stack number is not the load at the handle. It is priced from the same lat pulldown table and anchors, so it pays exactly what a lat pulldown pays until a stack-to-handle ratio is decided and applied to its anchors. a player's lat pulldown entries up to 2026-10-07 were moved to it; a player's stay on the plain lat pulldown.
+
 The 1RM tables used (Beginner / Novice / Intermediate / Advanced, men at 150 lb; dumbbell lifts in the combined convention) are in `src/strengthLevelTables.ts` with their source and read date.
 
 ## Limits
