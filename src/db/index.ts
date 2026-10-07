@@ -156,6 +156,11 @@ function migrate(conn: Database.Database): void {
       .run('seatedlegcurl');
   }
 
+  // Leg press is priced from the Strength Level horizontal leg press table (was the sled table). Repoints the 150 lb anchors only while they are still the old ones.
+  conn
+    .prepare(`UPDATE exercises SET pricing = REPLACE(pricing, '"oneRM":[190,297,433,596]', '"oneRM":[139,226,340,478]') WHERE key = ?`)
+    .run('legpress');
+
   // After the renames so a renamed key is priced too.
   if (version < 4) {
     // Migration 4: a pricing record for every catalog exercise (skips pending rows and distances in another unit).

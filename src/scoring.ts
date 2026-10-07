@@ -59,7 +59,7 @@ export const LIFT_1RM: Record<string, [number, number, number, number]> = {
   narrowbench: [95, 129, 170, 217],
   dbbench: [68, 104, 150, 206],
   overheadpress: [57, 83, 116, 154],
-  legpress: [190, 297, 433, 596],
+  legpress: [139, 226, 340, 478], // horizontal leg press table
   singlelegpress: [74, 144, 244, 369],
   latpulldown: [89, 124, 166, 215],
   row: [86, 123, 168, 220],
