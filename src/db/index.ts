@@ -217,6 +217,16 @@ function migrateAfterSeed(conn: Database.Database): void {
       .run('0');
     conn.pragma('user_version = 6');
   }
+  if (version < 7) {
+    // Migration 7: the machine lat pulldown was seeded on the plain lat pulldown anchors; it now uses them doubled. Seeds never overwrite, so move the live record (only while it still has the old anchors).
+    const spec = catalogPricing('machinelatpulldown')!;
+    const cols = pricingColumns(spec);
+    conn
+      .prepare('UPDATE exercises SET pricing = ?, points_per_rep = ?, ref_weight = ? WHERE key = ? AND pricing = ?')
+      .run(cols.json, cols.display, cols.ref, 'machinelatpulldown', JSON.stringify({ kind: 'lift', oneRM: [89, 124, 166, 215], table: 'machinelatpulldown' }));
+    conn.pragma('user_version = 7');
+    invalidateScoring();
+  }
 }
 
 function seedExercises(conn: Database.Database): void {
