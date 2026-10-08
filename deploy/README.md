@@ -109,6 +109,19 @@ node tools/live-db.mjs --json "SELECT COUNT(*) AS n FROM entries"
 Only a single SELECT, WITH or PRAGMA is accepted, and the VM opens the file read-only as well, so a write cannot land.
 Changes to live data go through the scripts and deploy flow in this file.
 
+## Data fixes (never in the repo)
+
+A fix to the data itself (moving, correcting or removing entries) names real people and applies to one database, so it is **not a migration and is never committed**: the repo is public. Migrations in `src/db/index.ts` are only for schema and for pricing or exercise-level changes that apply to everyone. A fix can be any shape (one entry, one person's day, everyone's entries from a date), so run it as SQL with the local-only `tools/live-db-write.mjs`:
+
+```bash
+# 1. dry run (the default): runs the SQL in a transaction on the VM, shows what would change, rolls back
+node tools/live-db-write.mjs "UPDATE entries SET exercise_key = '<key>' WHERE <which rows>"
+# 2. apply: --expect is the exact number of rows it must change (any other count rolls everything back)
+node tools/live-db-write.mjs "<same SQL>" --apply --expect <n> --label "what and why"
+```
+
+It refuses DDL and an UPDATE or DELETE with no WHERE, backs the database up to `/var/backups/wtca/pre-datafix-<time>.db` before applying, and appends each applied fix to `tools/data-fixes.log` (local only) so a restored backup can be fixed again. `--db <file>` runs it against a local rehearsal copy instead of the VM. The bot notices the write on its next query; no restart.
+
 ## Fast deploy (what a normal code change uses)
 
 Run `npm run check` first. Then, from the repo root:
