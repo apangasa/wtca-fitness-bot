@@ -211,10 +211,7 @@ function migrate(conn: Database.Database): void {
 function migrateAfterSeed(conn: Database.Database): void {
   const version = conn.pragma('user_version', { simple: true }) as number;
   if (version < 6) {
-    // Migration 6: a player's lat pulldowns so far were on a pulley/lever machine, so they move to the machine lift. Later /latpulldown entries stay where they are.
-    conn
-      .prepare("UPDATE entries SET exercise_key = 'machinelatpulldown' WHERE exercise_key = 'latpulldown' AND user_id = ?")
-      .run('0');
+    // Migration 6 was a one-off data fix, run once against the production database and not kept in source (it named a person).
     conn.pragma('user_version = 6');
   }
   if (version < 7) {
@@ -228,10 +225,7 @@ function migrateAfterSeed(conn: Database.Database): void {
     invalidateScoring();
   }
   if (version < 8) {
-    // Migration 8: everything a player logged as lat pulldown was reverse grip, so it moves to the reverse grip lift. Later /latpulldown entries stay where they are.
-    conn
-      .prepare("UPDATE entries SET exercise_key = 'reversegriplatpulldown' WHERE exercise_key = 'latpulldown' AND user_id = ?")
-      .run('0');
+    // Migration 8 was a one-off data fix, run once against the production database and not kept in source (it named a person).
     conn.pragma('user_version = 8');
   }
 }
