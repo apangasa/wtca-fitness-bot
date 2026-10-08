@@ -300,19 +300,19 @@ r = await run('legpress', { user: 'u-new', integers: { reps: 10 }, numbers: { we
 check('/legpress works and says its price per rep', r.replies[0]!.includes(`${formatPoints(model('legpress', 200))}/rep`), r.replies[0]);
 
 r = await run('squats', { user: 'u-new', integers: { reps: 20 } });
-check('bodyweight squats keep the old reply format', r.replies[0]!.includes('+20 squats') && !r.replies[0]!.includes('pts'), r.replies[0]);
+check('bodyweight squats reply with their points like any lift', r.replies[0]!.includes('Squats 20 reps:') && r.replies[0]!.includes(`+${formatPoints(20 * implied(26, 58))} pts`), r.replies[0]);
 
 r = await run('squats', { user: 'u-new', integers: { reps: 10 }, numbers: { weight: 185 } });
 check('loaded squat shows its price per rep (21.8)', r.replies[0]!.includes(formatPoints(model('squats', 185)) + '/rep'), r.replies[0]);
 
 r = await run('undo', { user: 'u-new', strings: { exercise: 'squats' } });
-check('/undo names the weight it removed', r.replies[0]!.includes('10 reps squats @ 185 lb'), r.replies[0]);
+check('/undo names the weight it removed', r.replies[0]!.includes('Squats 10 reps @ 185 lb'), r.replies[0]);
 
 const { dayKeyFor } = await import('../time.js');
 r = await run('run', { user: 'u-c', numbers: { amount: 3.1 } });
-check('/run pays 521.14 a mile and says so (3.1 mi)', r.replies[0]!.includes('+3.1mi run') && r.replies[0]!.includes('+' + formatPoints(3.1 * RUN) + ' pts'), r.replies[0]);
+check('/run pays 521.14 a mile and says so (3.1 mi)', r.replies[0]!.includes('Run 3.1mi:') && r.replies[0]!.includes('+' + formatPoints(3.1 * RUN) + ' pts'), r.replies[0]);
 r = await run('swim', { user: 'u-c', numbers: { amount: 1000 } });
-check('/swim 1000 yd pays 1,028.6', r.replies[0]!.includes('+1000yd swim') && r.replies[0]!.includes('+' + formatPoints(1000 * SWIM) + ' pts'), r.replies[0]);
+check('/swim 1000 yd pays 1,028.6', r.replies[0]!.includes('Swim 1000yd:') && r.replies[0]!.includes('+' + formatPoints(1000 * SWIM) + ' pts'), r.replies[0]);
 r = await run('swim', { user: 'u-c', numbers: { amount: 1000 }, strings: { unit: 'm' } });
 const swimMeters = formatPoints(1000 * 1.0936133 * SWIM);
 check(`/swim 1000 m converts to 1093.61 yd and pays ${swimMeters}`, r.replies[0]!.includes('1093.61yd') && r.replies[0]!.includes(`+${swimMeters} pts`), r.replies[0]);
@@ -358,7 +358,7 @@ r = await run('queue', { user: 'u-a' });
 check('/queue lists it with who logged it and the notes', ['Cable row', 'u-a', 'u-b', 'seated'].every((t) => r.replies[0]!.includes(t)), r.replies[0]);
 
 r = await run('undo', { user: 'u-b', strings: { exercise: 'cablerow' } });
-check('/undo works on a pending entry and names it', r.replies[0]!.includes('Removed 20 reps') && r.replies[0]!.includes('@ 50 lb'), r.replies[0]);
+check('/undo works on a pending entry and names it', r.replies[0]!.includes('Removed Cable row') && r.replies[0]!.includes('20 reps @ 50 lb'), r.replies[0]);
 await run('new', { user: 'u-b', strings: { name: 'cable row' }, integers: { reps: 10, sets: 2 }, numbers: { weight: 50 } });
 
 // Approve prices the row; entries already logged are scored with no extra step.

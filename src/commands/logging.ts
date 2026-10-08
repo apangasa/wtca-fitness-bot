@@ -9,6 +9,7 @@ import {
   formatWeight,
   unitSuffix,
   weightIsRequired,
+  type Unit,
 } from '../exercises.js';
 import {
   addEntry,
@@ -44,9 +45,16 @@ async function reject(interaction: ChatInputCommandInteraction, content: string)
   await interaction.reply({ content, flags: MessageFlags.Ephemeral });
 }
 
-function describeSet(ex: ExerciseRow, amount: number, weight: number | null): string {
-  if (weight === null || weight <= 0) return `${formatAmount(amount, ex.unit)} ${ex.label.toLowerCase()}`;
-  return `${formatAmount(amount, ex.unit)} reps ${ex.label.toLowerCase()} @ ${formatWeight(weight)}`;
+// Reps read "20 reps"; distances already carry their unit ("1.5mi").
+function withUnit(amount: number, unit: Unit): string {
+  return unit === 'reps' ? `${formatAmount(amount, unit)} reps` : formatAmount(amount, unit);
+}
+
+// One entry, the same way for every exercise: "Push-ups 20 reps", "Bench Press 3×8 @ 135 lb", "Run 1.5mi".
+function describeEntry(ex: ExerciseRow, amount: number, weight: number | null, sets = 1): string {
+  const count = sets > 1 ? `${sets}×${formatAmount(amount, ex.unit)}` : withUnit(amount, ex.unit);
+  const load = weight !== null && weight > 0 ? ` @ ${formatWeight(weight)}` : '';
+  return `${ex.label} ${count}${load}`;
 }
 
 interface LogOptions {
@@ -90,26 +98,15 @@ async function applyLog(
 
   const today = dayTotals(guildId, dayKey).find((t) => t.userId === user.id && t.exerciseKey === ex.key);
 
-  // Plain exercises and bodyweight squats keep the short reply.
-  if (stored === null) {
-    await interaction.reply(
-      `**${user.displayName}** +${formatAmount(total, ex.unit)} ${ex.label.toLowerCase()}` +
-        // Distances show the points they earned.
-        (ex.unit !== 'reps' && priceAt(ex, null) > 0 ? ` (+${formatPoints(total * priceAt(ex, null))} pts)` : '') +
-        ` — **${formatAmount(today?.total ?? total, ex.unit)}** today`,
-    );
-    return;
-  }
-
-  // The price shown uses the person's own body weight.
-  const perRep = priceAt(ex, stored, bodyWeightOf(user.id));
-  const shape = sets > 1 ? `${sets}×${formatAmount(amount, ex.unit)}` : `${formatAmount(amount, ex.unit)} reps`;
-  const note = ex.weightNote ? ` (${ex.weightNote})` : '';
+  // Every exercise gets this reply, so points are never mistaken for reps. The price uses the person's own body weight.
+  const perUnit = priceAt(ex, stored, bodyWeightOf(user.id));
+  const note = stored !== null && ex.weightNote ? ` (${ex.weightNote})` : '';
+  const per = ex.unit === 'reps' ? 'rep' : ex.unit;
   const lines = [
-    `**${user.displayName}** — ${ex.label} ${shape} @ ${formatWeight(stored)}${note}: ` +
-      `**+${formatPoints(total * perRep)} pts** (${formatPoints(perRep)}/rep)`,
-    `Today on ${ex.label.toLowerCase()}: ${formatAmount(today?.total ?? total, ex.unit)} reps · ` +
-      `${formatPoints(today?.points ?? total * perRep)} pts`,
+    `**${user.displayName}** — ${describeEntry(ex, amount, stored, sets)}${note}: ` +
+      `**+${formatPoints(total * perUnit)} pts** (${formatPoints(perUnit)}/${per})`,
+    `Today on ${ex.label.toLowerCase()}: ${withUnit(today?.total ?? total, ex.unit)} · ` +
+      `${formatPoints(today?.points ?? total * perUnit)} pts`,
   ];
   await interaction.reply(lines.join('\n'));
 }
@@ -281,7 +278,7 @@ const undoCommand: CommandDef = {
     }
     const ex = getExercise(removed.exerciseKey);
     const what = ex
-      ? describeSet(ex, removed.amount, removed.weight)
+      ? describeEntry(ex, removed.amount, removed.weight)
       : `${removed.amount} ${removed.exerciseKey}`;
     await interaction.reply(`Removed ${what} ${when}.`);
   },
