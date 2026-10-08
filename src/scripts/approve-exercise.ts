@@ -1,5 +1,5 @@
 // Prices a queued exercise or merges it into an existing one (docs/points-new-exercises.md).
-//   approve <key> --label "Name" (--flat <p> | --lift <b,n,i,a> | --bw <p> --k <share> (--reps <b,n,i,a> | --onerm <b,n,i,a>) [--assist]) [--table <key>] [--note "..."]
+//   approve <key> --label "Name" (--flat <p> | --lift <b,n,i,a> | --bw <p> --k <share> (--reps <b,n,i,a> | --onerm <b,n,i,a>) [--assist]) [--table <key>] [--note "..."] [--as <new-key>]
 //   merge <key> --into <existing-key>
 import { config } from '../config.js';
 import { db } from '../db/index.js';
@@ -27,7 +27,7 @@ function seasonBoard(): Map<string, number> {
 
 if (!command || !key || (command !== 'approve' && command !== 'merge')) {
   fail(
-    'usage: approve <key> --label "Name" (--flat <p> | --lift <b,n,i,a> | --bw <p> --k <share> (--reps <b,n,i,a> | --onerm <b,n,i,a>) [--assist]) [--note "..."]\n' +
+    'usage: approve <key> --label "Name" (--flat <p> | --lift <b,n,i,a> | --bw <p> --k <share> (--reps <b,n,i,a> | --onerm <b,n,i,a>) [--assist]) [--table <key>] [--note "..."] [--as <new-key>]\n' +
       '       merge <key> --into <existing-key>',
   );
 }
@@ -58,14 +58,22 @@ if (command === 'approve') {
   if (table !== undefined) pricing.table = table;
   if (!pricingValid(pricing)) fail('That pricing is not valid: a price is a number >= 0 and a curve needs four positive numbers.');
 
-  const ex = approveExercise(key, { label, pricing, note: flag('note') ?? null });
+  // --as <new-key> renames the exercise (and so its slash command) as it is priced; without it the key stays as the player typed it.
+  const newKey = flag('as');
+  let ex;
+  try {
+    ex = approveExercise(key, { label, pricing, note: flag('note') ?? null, ...(newKey !== undefined ? { newKey } : {}) });
+  } catch (err) {
+    fail(err instanceof Error ? err.message : String(err));
+  }
   if (!ex) fail(`"${key}" is not a pending exercise.`);
+  const finalKey = ex.key;
   console.log(
-    `Priced ${ex.label}: ${JSON.stringify(pricing)}` +
+    `Priced ${ex.label}${finalKey !== key ? ` (key ${key} -> ${finalKey})` : ''}: ${JSON.stringify(pricing)}` +
       `. ${entryCount} entr${entryCount === 1 ? 'y' : 'ies'} backfilled.`,
   );
   const noWeight = (
-    conn.prepare('SELECT COUNT(*) AS n FROM entries WHERE exercise_key = ? AND weight IS NULL').get(key) as { n: number }
+    conn.prepare('SELECT COUNT(*) AS n FROM entries WHERE exercise_key = ? AND weight IS NULL').get(finalKey) as { n: number }
   ).n;
   if (pricing.kind === 'lift' && noWeight > 0) {
     console.log(`Note: ${noWeight} of them have no weight, and a weighted lift with no weight scores 0.`);

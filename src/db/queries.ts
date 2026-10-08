@@ -329,23 +329,52 @@ export interface ApproveSpec {
   label: string;
   pricing: PricingSpec;
   note?: string | null;
+  // The key (and so the slash command) the exercise ends up with; players type the queued key, so it is often not the one wanted.
+  newKey?: string;
 }
 
-/** Prices a pending exercise; entries need no backfill because points are computed from the row. */
+/** A key the slash command can use: lowercase letters, digits and hyphens, up to 32. */
+export const KEY_PATTERN = /^[a-z0-9-]{1,32}$/;
+
+/** Prices a pending exercise, optionally under a new key; entries need no backfill because points are computed from the row. */
 export function approveExercise(key: string, spec: ApproveSpec): ExerciseRow | null {
   if (!pricingValid(spec.pricing)) {
     throw new Error('pricing must be a flat price >= 0, four positive 1RM anchors, or a bodyweight curve');
   }
+  const newKey = spec.newKey !== undefined && spec.newKey !== key ? spec.newKey : null;
+  if (newKey !== null && !KEY_PATTERN.test(newKey)) {
+    throw new Error('the new key must be lowercase letters, digits and hyphens (up to 32), so it can be a slash command');
+  }
   // ref_weight and weight_mode tell the slash command what to ask for; points_per_rep is display only.
   const cols = pricingColumns(spec.pricing);
-  const changed = db()
-    .prepare(
-      `UPDATE exercises SET label = ?, points_per_rep = ?, ref_weight = ?, weight_mode = ?, weight_note = ?, pricing = ?, pending = 0
-       WHERE key = ? AND pending = 1`,
-    )
-    .run(spec.label, cols.display, cols.ref, cols.mode, spec.note ?? null, cols.json, key).changes;
+  const conn = db();
+  const run = conn.transaction((): boolean => {
+    if (newKey !== null && conn.prepare('SELECT 1 FROM exercises WHERE key = ?').get(newKey) !== undefined) {
+      throw new Error(`"${newKey}" is already an exercise key`);
+    }
+    const changed = conn
+      .prepare(
+        `UPDATE exercises SET label = ?, points_per_rep = ?, ref_weight = ?, weight_mode = ?, weight_note = ?, pricing = ?, pending = 0
+         WHERE key = ? AND pending = 1`,
+      )
+      .run(spec.label, cols.display, cols.ref, cols.mode, spec.note ?? null, cols.json, key).changes;
+    if (changed === 0) return false;
+    if (newKey !== null) {
+      // The key is a foreign key target: copy the row, repoint the entries, drop the old row.
+      conn
+        .prepare(
+          `INSERT INTO exercises (key, label, unit, sort_order, active, points_per_rep, ref_weight, weight_mode, weight_note, pending, pricing)
+           SELECT ?, label, unit, sort_order, active, points_per_rep, ref_weight, weight_mode, weight_note, pending, pricing FROM exercises WHERE key = ?`,
+        )
+        .run(newKey, key);
+      conn.prepare('UPDATE entries SET exercise_key = ? WHERE exercise_key = ?').run(newKey, key);
+      conn.prepare('DELETE FROM exercises WHERE key = ?').run(key);
+    }
+    return true;
+  });
+  const approved = run();
   invalidateScoring();
-  return changed > 0 ? getExercise(key) : null;
+  return approved ? getExercise(newKey ?? key) : null;
 }
 
 /** Moves a pending exercise's entries into an existing one; returns how many moved, or null for an invalid pair. */

@@ -33,6 +33,9 @@ node dist/scripts/approve-exercise.js approve <key> --label "Wall Sit" --flat 3 
 node dist/scripts/approve-exercise.js approve <key> --label "Cable Row" --lift 86,123,168,220 --note "stack setting"
 node dist/scripts/approve-exercise.js approve <key> --label "Ring Dip" --bw 12 --k 1.0 --reps 2,10,20,32
 
+# the key players typed is the queued key (tricepsextensions); --as gives the exercise, and so its slash command, a better one
+node dist/scripts/approve-exercise.js approve tricepsextensions --label "Machine Tricep Extension" --lift 58,96,145,204 --as machinetricepextension
+
 # fold it into an existing exercise instead
 node dist/scripts/approve-exercise.js merge <key> --into row
 ```

@@ -72,6 +72,8 @@ $SSH "cd /opt/wtca-fitness-bot && sudo env DB_PATH=$DB node dist/scripts/queue.j
 #                     weight as assistance. (--onerm <b,n,i,a> replaces --reps when the 1RMs are known directly.)
 $SSH "cd /opt/wtca-fitness-bot && sudo env DB_PATH=$DB node dist/scripts/approve-exercise.js approve <key> --label 'Cable Row' --lift 86,123,168,220 --note 'stack setting'"
 $SSH "cd /opt/wtca-fitness-bot && sudo env DB_PATH=$DB node dist/scripts/approve-exercise.js approve <key> --label 'Wall Sit' --flat 3"
+# --as <new-key> renames it as it is priced (the queued key is whatever the player typed, and it becomes the slash command)
+$SSH "cd /opt/wtca-fitness-bot && sudo env DB_PATH=$DB node dist/scripts/approve-exercise.js approve <key> --label 'Wall Sit' --flat 3 --as wallsit"
 $SSH "cd /opt/wtca-fitness-bot && sudo env DB_PATH=$DB node dist/scripts/approve-exercise.js merge <key> --into row"
 
 # a new exercise needs its slash command registered

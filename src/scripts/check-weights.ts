@@ -401,6 +401,22 @@ q.createPendingExercise('assistedring', 'Assisted ring');
 const asApproved = q.approveExercise('assistedring', { label: 'Assisted ring', pricing: { kind: 'bw', p: 14, k: 1, reps: [2, 10, 20, 32], assist: true } });
 check('an assisted approval reads the weight as assistance', !!asApproved && asApproved.weightMode === 'assist' && q.priceAt(asApproved, 30) < q.priceAt(asApproved, 10));
 
+// Approving can rename: players type the queued key, so the one the exercise keeps is chosen at approval.
+q.ensureUser('u-rename', 'Rename');
+q.createPendingExercise('zzrename', 'Zz rename');
+q.addEntry(GUILD, 'u-rename', 'zzrename', day, 5, 100);
+const renamed = q.approveExercise('zzrename', { label: 'Renamed Lift', pricing: { kind: 'lift', oneRM: rowAnchors }, newKey: 'renamedlift' });
+check('approving with a new key prices the exercise under that key and drops the typed one', !!renamed && renamed.key === 'renamedlift' && renamed.label === 'Renamed Lift' && !renamed.pending && q.getExercise('zzrename') === null, JSON.stringify(renamed));
+const renamedTotal = q.dayTotals(GUILD, day).find((t) => t.userId === 'u-rename');
+check('its entries moved with the key and score at the new price', renamedTotal?.exerciseKey === 'renamedlift' && renamedTotal.total === 5 && renamedTotal.points > 0, JSON.stringify(renamedTotal));
+check('the slash command is the new key, not the typed one', buildCommands().has('renamedlift') && !buildCommands().has('zzrename'));
+q.createPendingExercise('zzclash', 'Zz clash');
+q.addEntry(GUILD, 'u-rename', 'zzclash', day, 3, 50);
+const throws = (fn: () => unknown): boolean => { try { fn(); return false; } catch { return true; } };
+check('a new key that is already taken is refused and nothing moves', throws(() => q.approveExercise('zzclash', { label: 'x', pricing: { kind: 'flat', p: 1 }, newKey: 'benchpress' })) && q.getExercise('zzclash')?.pending === true && q.dayTotals(GUILD, day).some((t) => t.exerciseKey === 'zzclash'));
+check('a new key that cannot be a slash command is refused', throws(() => q.approveExercise('zzclash', { label: 'x', pricing: { kind: 'flat', p: 1 }, newKey: 'Bad Key' })) && q.getExercise('zzclash')?.pending === true);
+check('a new key equal to the typed one is a plain approval', q.approveExercise('zzclash', { label: 'Zz clash', pricing: { kind: 'flat', p: 2 }, newKey: 'zzclash' })?.key === 'zzclash');
+
 // Merge folds a duplicate into the exercise it really was.
 await run('new', { user: 'u-a', strings: { name: 'seated row' }, integers: { reps: 8 }, numbers: { weight: 100 } });
 check('/new queued it', q.getExercise('seatedrow')?.pending === true);
