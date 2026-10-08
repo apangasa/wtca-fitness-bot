@@ -74,6 +74,8 @@ export const LIFT_1RM: Record<string, [number, number, number, number]> = {
   facepulls: [27, 53, 90, 137],
   inclinecurls: [34, 52, 76, 102],
   triceppushdown: [38, 67, 107, 157],
+  machinetricepextensions: [58, 96, 145, 204], // seated tricep extension machine (stack setting)
+  chestpress: [70, 114, 172, 242], // machine chest press, converging or fixed path (Strength Level has one entry for both)
   lateralraise: [18, 36, 64, 98],
   seatedlegcurl: [72, 112, 163, 224],
   lyinglegcurl: [54, 86, 127, 177],

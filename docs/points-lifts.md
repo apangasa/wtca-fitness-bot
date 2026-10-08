@@ -101,6 +101,8 @@ The reverse grip lat pulldown (`/reversegriplatpulldown`) has its own Strength L
 
 Bulgarian split squat is two lifts, because Strength Level publishes two 1RM tables (150 lb row): the page that does not name dumbbells, priced as the barbell lift, at 32 / 69 / 123 / 194 lb, and the dumbbell page at 22 / 40 / 63 / 92 per dumbbell, 44 / 80 / 126 / 184 combined. They agree at Intermediate (123 against 126) and differ at the ends (Beginner 32 against 44, Advanced 194 against 184), so a light load pays more on the barbell table and a heavy one slightly more on the dumbbell table (60 lb: 16.4 against 12.7 a rep; 135 lb: 41.3 against 42.7). Neither table includes body weight, so a split squat with no load pays about 0, unlike the lunge; counting a share of body weight would need a sourced k.
 
+The machine tricep extension (`/machinetricepextensions`) is priced from Strength Level's machine tricep extension table (150 lb row 58 / 96 / 145 / 204), not the tricep extension table, which is a different exercise (barbell or dumbbell, not a seated stack machine). The chest press (`/chestpress`) is priced from Strength Level's chest press table (150 lb row 70 / 114 / 172 / 242). Strength Level has one machine chest press entry and no separate converging or lever one, so a converging chest press is logged there as the closest match; both weights are the stack setting or the plates loaded.
+
 The 1RM tables used (Beginner / Novice / Intermediate / Advanced, men at 150 lb; dumbbell lifts in the combined convention) are in `src/strengthLevelTables.ts` with their source and read date.
 
 ## Limits

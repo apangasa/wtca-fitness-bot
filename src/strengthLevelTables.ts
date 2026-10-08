@@ -613,6 +613,52 @@ export const LIFT_TABLES: Record<string, Row[]> = {
 116/163/221/288
 120/168/227/294
 124/173/232/300`),
+  // Strength Level's machine tricep extension (men), read 2026-10-07: a seated stack machine, weight is the stack setting.
+  machinetricepextensions: parse(`
+40/72/115/168
+45/78/123/178
+49/84/131/187
+54/90/138/196
+58/96/145/204
+63/101/151/212
+67/106/158/219
+71/112/164/227
+75/116/170/234
+79/121/176/240
+82/126/181/247
+86/130/187/253
+89/135/192/259
+93/139/197/265
+96/143/202/271
+100/147/207/276
+103/151/211/282
+106/155/216/287
+109/158/220/292
+112/162/224/297
+115/166/229/302`),
+  // Strength Level's chest press (men), read 2026-10-07: the machine chest press, weight is the stack setting or plates. It has no separate converging or lever entry.
+  chestpress: parse(`
+45/81/130/192
+51/90/142/205
+58/98/152/218
+64/106/162/230
+70/114/172/242
+76/122/182/253
+82/130/191/264
+88/137/200/274
+94/144/208/284
+99/151/216/294
+105/157/224/303
+110/164/232/312
+115/170/239/320
+120/176/247/329
+125/182/254/337
+130/188/261/345
+135/194/267/353
+140/200/274/360
+144/205/280/368
+149/210/287/375
+153/216/293/382`),
 };
 // The machine lat pulldown follows body weight on the same Strength Level table as the plain lat pulldown.
 LIFT_TABLES.machinelatpulldown = LIFT_TABLES.latpulldown!;
