@@ -63,8 +63,8 @@ export const LIFT_1RM: Record<string, [number, number, number, number]> = {
   singlelegpress: [74, 144, 244, 369],
   latpulldown: [89, 124, 166, 215],
   reversegriplatpulldown: [98, 136, 183, 236],
-  // The latpulldown anchors doubled: this machine's stack setting is about twice the handle load, so a stack setting of 2w is priced as w on the plain lat pulldown.
-  machinelatpulldown: [178, 248, 332, 430],
+  // The latpulldown anchors x1.5: the handles carry about 0.63 of the stack setting (measured from the manual's cable layout and photos, 90% range 0.58-0.67), so a stack setting of 1.5w is priced as w on the plain lat pulldown.
+  machinelatpulldown: [133.5, 186, 249, 322.5],
   row: [86, 123, 168, 220],
   bentoverrow: [84, 120, 165, 217],
   deadlift: [160, 220, 293, 377],

@@ -63,9 +63,9 @@ if (reopen) {
   check('reopen: a curve tuned in the database survives a restart', JSON.stringify(bench.pricing) === JSON.stringify({ kind: 'lift', oneRM: [100, 140, 190, 240] }), JSON.stringify(bench.pricing));
   check('reopen: a hand-set run price is not put back to 521 by the migration', q.getExercise('run')!.pricing?.kind === 'flat' && (q.getExercise('run')!.pricing as { p: number }).p === 777);
   check('reopen: burpees tuned to 11 are not repriced again', (q.getExercise('burpees')!.pricing as { p: number }).p === 11);
-  check('reopen: the migration did not run again (user_version 8, an emptied record stays empty)', userVersion() === 8 && q.getExercise('abrolls')!.pricing === null);
+  check('reopen: the migration did not run again (user_version 9, an emptied record stays empty)', userVersion() === 9 && q.getExercise('abrolls')!.pricing === null);
   const machineRe = q.getExercise('machinelatpulldown')!;
-  check('reopen: migration 7 moved the live-style machine lat pulldown record to the doubled anchors (and its reference weight)', machineRe.pricing?.kind === 'lift' && machineRe.pricing.oneRM.join() === '178,248,332,430' && machineRe.refWeight !== null && near(machineRe.refWeight, (29 / 36) * 248, 1e-9), JSON.stringify(machineRe));
+  check('reopen: migration 9 moved the live-style machine lat pulldown record from the doubled to the x1.5 anchors (and its reference weight)', machineRe.pricing?.kind === 'lift' && machineRe.pricing.oneRM.join() === '133.5,186,249,322.5' && machineRe.refWeight !== null && near(machineRe.refWeight, (29 / 36) * 186, 1e-9), JSON.stringify(machineRe));
   check('reopen: nothing was duplicated', q.listExercises().filter((e) => e.key === 'benchpress').length === 1);
   check('reopen: a body weight set with /weight survives a restart', q.getUserWeight('u-wt') === 130 && q.userWeightLog().length >= 3);
   q.ensureUser('u-re', 'Reopen');
@@ -124,10 +124,10 @@ const oldRun = q.dayTotals(GUILD, '2026-09-12').find((t) => t.exerciseKey === 'r
 check('the 3-mile run logged before was backfilled to 3 x 521.14', !!oldRun && near(oldRun.points, 3 * RUN), String(oldRun?.points));
 const swimEx = q.getExercise('swim');
 check('swim exists at 1.0286 per yard', swimEx?.pricing?.kind === 'flat' && near(swimEx.pricing.p, SWIM) && swimEx.unit === 'yd', JSON.stringify(swimEx));
-check('the one-shot upgrades are recorded (user_version 8)', userVersion() === 8);
+check('the one-shot upgrades are recorded (user_version 9)', userVersion() === 9);
 const machineLat = q.getExercise('machinelatpulldown')!;
-check('machine lat pulldown is seeded as a lift on the doubled lat pulldown anchors and its own table', machineLat.label === 'Machine Lat Pulldown' && machineLat.pricing?.kind === 'lift' && machineLat.pricing.table === 'machinelatpulldown' && machineLat.pricing.oneRM.join() === '178,248,332,430' && machineLat.refWeight !== null, JSON.stringify(machineLat));
-check('a stack setting of 2w on the machine lat pulldown pays what w pays on the plain lat pulldown, at 150 lb and at 220 lb', [150, 220].every((bw) => [50, 72.5, 90, 100].every((w) => near(buildCurve(catalogPricing('machinelatpulldown')!, bw)(2 * w), buildCurve(catalogPricing('latpulldown')!, bw)(w), 1e-9))));
+check('machine lat pulldown is seeded as a lift on the lat pulldown anchors x1.5 and its own table', machineLat.label === 'Machine Lat Pulldown' && machineLat.pricing?.kind === 'lift' && machineLat.pricing.table === 'machinelatpulldown' && machineLat.pricing.oneRM.join() === '133.5,186,249,322.5' && machineLat.refWeight !== null, JSON.stringify(machineLat));
+check('a stack setting of 1.5w on the machine lat pulldown pays what w pays on the plain lat pulldown, at 150 lb and at 220 lb', [150, 220].every((bw) => [50, 72.5, 90, 100].every((w) => near(buildCurve(catalogPricing('machinelatpulldown')!, bw)(1.5 * w), buildCurve(catalogPricing('latpulldown')!, bw)(w), 1e-9))));
 const reverseLat = q.getExercise('reversegriplatpulldown')!;
 check('reverse grip lat pulldown is seeded as a lift on its own table with the 150 lb row 98/136/183/236', reverseLat.label === 'Reverse Grip Lat Pulldown' && reverseLat.pricing?.kind === 'lift' && reverseLat.pricing.table === 'reversegriplatpulldown' && reverseLat.pricing.oneRM.join() === '98,136,183,236' && reverseLat.refWeight !== null, JSON.stringify(reverseLat));
 
@@ -434,8 +434,8 @@ const S = await import('../scoring.js');
 const { LIFT_1RM } = S;
 {
   const eq = (a: readonly number[], b: readonly number[]): boolean => a.length === b.length && a.every((v, i) => v === b[i]);
-  // The machine lat pulldown's anchors are its table's 150 lb row doubled on purpose (its stack setting is about twice the handle load).
-  const SCALED: Record<string, number> = { machinelatpulldown: 2 };
+  // The machine lat pulldown's anchors are its table's 150 lb row x1.5 on purpose (its handles carry about 0.63 of the stack setting).
+  const SCALED: Record<string, number> = { machinelatpulldown: 1.5 };
   const expected = (k: string): number[] => T.tableAt(T.LIFT_TABLES[k]!, 150).map((x) => x * (SCALED[k] ?? 1));
   check('every lift table has a 150 lb row equal to the anchors in scoring.ts, times its stated scale (default users unchanged)', Object.keys(LIFT_1RM).every((k) => eq(expected(k), LIFT_1RM[k]!)), Object.keys(LIFT_1RM).filter((k) => !eq(expected(k), LIFT_1RM[k]!)).join());
   check('every weighted-bodyweight table has a 150 lb row equal to the curve data in scoring.ts',
@@ -560,9 +560,9 @@ db().prepare(`UPDATE exercises SET pricing = '{"kind":"flat","p":777}' WHERE key
 db().prepare(`UPDATE exercises SET pricing = '{"kind":"lift","oneRM":[100,140,190,240]}' WHERE key = 'benchpress'`).run();
 db().prepare(`UPDATE exercises SET pricing = '{"kind":"flat","p":11}' WHERE key = 'burpees'`).run();
 db().prepare(`UPDATE exercises SET pricing = NULL WHERE key = 'abrolls'`).run();
-// A live-style row from before migration 7 (plain lat pulldown anchors, user_version 6): the reopen run must move it to the doubled anchors.
-db().prepare(`UPDATE exercises SET pricing = '{"kind":"lift","oneRM":[89,124,166,215],"table":"machinelatpulldown"}', ref_weight = 99.9 WHERE key = 'machinelatpulldown'`).run();
-db().pragma('user_version = 6');
+// A live-style row from before migration 9 (doubled anchors, user_version 8): the reopen run must move it to the x1.5 anchors.
+db().prepare(`UPDATE exercises SET pricing = '{"kind":"lift","oneRM":[178,248,332,430],"table":"machinelatpulldown"}', ref_weight = 99.9 WHERE key = 'machinelatpulldown'`).run();
+db().pragma('user_version = 8');
 invalidateScoring();
 check('a record emptied by hand falls back to the legacy price (ab-rolls 14.2857, kept as the display value)', near(q.priceAt(q.getExercise('abrolls')!, null), implied(7, 21), 1e-9));
 

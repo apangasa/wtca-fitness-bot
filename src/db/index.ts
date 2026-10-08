@@ -228,6 +228,15 @@ function migrateAfterSeed(conn: Database.Database): void {
     // Migration 8 was a one-off data fix, run once against the production database and not kept in source (it named a person).
     conn.pragma('user_version = 8');
   }
+  if (version < 9) {
+    // Migration 9: the machine lat pulldown anchors go from doubled to x1.5 (only while the live record still has the doubled ones).
+    const cols = pricingColumns(catalogPricing('machinelatpulldown')!);
+    conn
+      .prepare('UPDATE exercises SET pricing = ?, points_per_rep = ?, ref_weight = ? WHERE key = ? AND pricing = ?')
+      .run(cols.json, cols.display, cols.ref, 'machinelatpulldown', JSON.stringify({ kind: 'lift', oneRM: [178, 248, 332, 430], table: 'machinelatpulldown' }));
+    conn.pragma('user_version = 9');
+    invalidateScoring();
+  }
 }
 
 function seedExercises(conn: Database.Database): void {
