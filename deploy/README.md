@@ -70,10 +70,10 @@ $SSH "cd /opt/wtca-fitness-bot && sudo env DB_PATH=$DB node dist/scripts/queue.j
 #                     bodyweight with optional added load: <p> is a bodyweight rep's price, k the share of 150 lb counted
 #                     as load (1.0 unless sourced), reps Strength Level's reps to failure per level; --assist reads the
 #                     weight as assistance. (--onerm <b,n,i,a> replaces --reps when the 1RMs are known directly.)
-$SSH "cd /opt/wtca-fitness-bot && sudo env DB_PATH=$DB node dist/scripts/approve-exercise.js approve <key> --label 'Cable Row' --lift 86,123,168,220 --note 'stack setting'"
-$SSH "cd /opt/wtca-fitness-bot && sudo env DB_PATH=$DB node dist/scripts/approve-exercise.js approve <key> --label 'Wall Sit' --flat 3"
-# --as <new-key> renames it as it is priced (the queued key is whatever the player typed, and it becomes the slash command)
-$SSH "cd /opt/wtca-fitness-bot && sudo env DB_PATH=$DB node dist/scripts/approve-exercise.js approve <key> --label 'Wall Sit' --flat 3 --as wallsit"
+$SSH "cd /opt/wtca-fitness-bot && sudo env DB_PATH=$DB node dist/scripts/approve-exercise.js approve <key> --label 'Cable Row' --lift 86,123,168,220 --table row --note 'stack setting'"
+$SSH "cd /opt/wtca-fitness-bot && sudo env DB_PATH=$DB node dist/scripts/approve-exercise.js approve <key> --label 'Wall Sit' --flat 3 --table <key>"
+# --as <new-key> renames it as it is priced (--table <key> is required: add the exercise's rows to src/strengthLevelTables.ts and deploy first. The queued key is whatever the player typed, and it becomes the slash command)
+$SSH "cd /opt/wtca-fitness-bot && sudo env DB_PATH=$DB node dist/scripts/approve-exercise.js approve <key> --label 'Wall Sit' --flat 3 --table <key> --as wallsit"
 $SSH "cd /opt/wtca-fitness-bot && sudo env DB_PATH=$DB node dist/scripts/approve-exercise.js merge <key> --into row"
 
 # a new exercise needs its slash command registered
@@ -91,7 +91,7 @@ the live recount for a past season would change.
 Anyone can set an optional body weight with `/weight set` (110-310 lb, the range of Strength Level's tables), look up their own or anyone's with `/weight show [user]` and drop it with `/weight clear`. The replies appear in the channel; only an out-of-range error is private. The weight is not shown in charts, recaps or leaderboards. Unset means 150 lb, the reference lifter, so nobody's score changes until they opt in.
 
 - It changes **loaded lifts**, which are scored against Strength Level's men's by-bodyweight rows for that weight (anchors interpolated linearly in body weight), and **weighted bodyweight exercises** (added load, assisted pull-ups), whose load is k x body weight. A bodyweight rep with no added load pays the same flat price for everyone.
-- The data is `src/strengthLevelTables.ts` (source and read date in its header). An exercise follows body weight only if its pricing record has a `table` (the catalog ones do; `approve-exercise --table <key>` adds one for a newly priced exercise; without it the exercise scores the same for everyone).
+- The data is `src/strengthLevelTables.ts` (source and read date in its header). An exercise follows body weight only if its pricing record has a `table` (the catalog ones do; `approve-exercise --table <key>` adds one for a newly priced exercise; `approve-exercise` refuses to price without one).
 - The current value applies to all of that person's history in a running season; closed seasons stay frozen in `season_standings`.
 - Storage: `user_weight` (current) and `user_weight_log` (append-only, a clear is a NULL weight). Admin view: `tsx src/scripts/inspect-db.ts` lists both (read-only); on the VM: `node tools/live-db.mjs "SELECT * FROM user_weight_log"`.
 - Scoring picks the weight up through the `entry_points(key, amount, weight, user_id)` SQL function; the bot reloads weights when another process writes the database, and `/weight` itself invalidates the cache.
@@ -139,7 +139,7 @@ ssh -i $KEY $HOST 'cd /opt/wtca-fitness-bot &&
 
 - The backup comes first, because a migration or price change cannot be undone any other way. Rename it per change (`pre-<what>.db`) if you want to keep it.
 - `nice` keeps the compile from starving the running bot, which would make live commands time out.
-- A restart drops commands for about 15 seconds. Give the user a heads-up first if they may be mid-workout.
+- A restart drops commands for about 15 seconds.
 - Journal timestamps are UTC (4 hours ahead of New York in October).
 - A script-only change (anything under `src/scripts`) needs the compile but not the restart.
 

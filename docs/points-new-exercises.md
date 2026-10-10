@@ -28,16 +28,15 @@ Players log an unknown exercise with `/new` (reps, optional weight, sets and not
 node dist/scripts/queue.js
 
 # price one: a flat price, a lift (its four 1RMs), or bodyweight with optional added load
-node dist/scripts/approve-exercise.js approve <key> --label "Wall Sit" --flat 3
 node dist/scripts/approve-exercise.js approve <key> --label "Wall Sit" --flat 3 --table <key>
-node dist/scripts/approve-exercise.js approve <key> --label "Cable Row" --lift 86,123,168,220 --note "stack setting"
-node dist/scripts/approve-exercise.js approve <key> --label "Ring Dip" --bw 12 --k 1.0 --reps 2,10,20,32
+node dist/scripts/approve-exercise.js approve <key> --label "Cable Row" --lift 86,123,168,220 --table row --note "stack setting"
+node dist/scripts/approve-exercise.js approve <key> --label "Ring Dip" --bw 12 --k 1.0 --reps 2,10,20,32 --table <key>
 
 # the key players typed is the queued key (tricepsextensions); --as gives the exercise, and so its slash command, a better one
-node dist/scripts/approve-exercise.js approve tricepsextensions --label "Machine Tricep Extension" --lift 58,96,145,204 --as machinetricepextension
+node dist/scripts/approve-exercise.js approve tricepsextensions --label "Machine Tricep Extension" --lift 58,96,145,204 --table machinetricepextensions --as machinetricepextension
 
 # fold it into an existing exercise instead
 node dist/scripts/approve-exercise.js merge <key> --into row
 ```
 
-Run these on the VM with `DB_PATH` set, as in the deploy README, then restart the bot so the new slash command registers. `--table <key>` makes a newly priced exercise follow body weight ([points-weight-class.md](points-weight-class.md)): a lift moves by the table's row ratio, and a flat or bodyweight price scales with the table's Novice and Intermediate reps (the key must exist in `src/strengthLevelTables.ts`); without it the exercise scores the same for everyone. The script prints how many entries were scored and how each person's running-season total moved.
+Run these on the VM with `DB_PATH` set, as in the deploy README, then restart the bot so the new slash command registers. `--table <key>` makes a newly priced exercise follow body weight ([points-weight-class.md](points-weight-class.md)): a lift moves by the table's row ratio, and a flat or bodyweight price scales with the table's Novice and Intermediate reps (the key must exist in `src/strengthLevelTables.ts`); `approve` refuses to price without it (only a flat 0, which scores nothing, is exempt), so add the exercise's full men's by-bodyweight rows to `src/strengthLevelTables.ts` and deploy first. The script prints how many entries were scored and how each person's running-season total moved.

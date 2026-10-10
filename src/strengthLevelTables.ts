@@ -659,6 +659,52 @@ export const LIFT_TABLES: Record<string, Row[]> = {
 144/205/280/368
 149/210/287/375
 153/216/293/382`),
+  // Strength Level's one arm dumbbell preacher curl (men), read 2026-10-10: one dumbbell, doubled to combined.
+  dumbbellpreachercurl: doubled(parse(`
+10/18/30/45
+12/21/33/48
+13/23/36/51
+15/25/38/55
+17/27/41/58
+18/29/43/61
+20/31/46/63
+21/33/48/66
+23/35/50/69
+24/37/53/71
+26/39/55/74
+27/40/57/76
+28/42/59/79
+30/44/61/81
+31/45/63/83
+32/47/65/85
+34/48/66/87
+35/50/68/89
+36/51/70/91
+38/53/72/93
+39/54/73/95`)),
+  // Strength Level's tricep extension (men), read 2026-10-10: barbell, the bar included in the weight.
+  barbelltricepextension: parse(`
+10/28/58/97
+13/34/65/107
+17/39/72/116
+20/44/79/124
+23/49/86/133
+27/54/92/141
+30/59/98/149
+34/63/105/156
+37/68/111/163
+40/73/116/170
+44/77/122/177
+47/81/128/184
+50/86/133/190
+54/90/138/197
+57/94/143/203
+60/98/148/209
+63/102/153/215
+66/106/158/220
+69/110/163/226
+72/114/168/231
+75/118/172/237`),
 };
 // The machine lat pulldown follows body weight on the same Strength Level table as the plain lat pulldown.
 LIFT_TABLES.machinelatpulldown = LIFT_TABLES.latpulldown!;

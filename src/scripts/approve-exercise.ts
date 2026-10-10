@@ -7,6 +7,7 @@ import { approveExercise, getExercise, mergeExercise, scoreboard } from '../db/q
 import { currentSeason } from '../seasons.js';
 import { dayKeyFor } from '../time.js';
 import { pricingValid, type PricingSpec } from '../scoring.js';
+import { BODYWEIGHT_TABLES, LIFT_TABLES, REPS_TABLES } from '../strengthLevelTables.js';
 
 const [command, key, ...rest] = process.argv.slice(2);
 
@@ -53,9 +54,16 @@ if (command === 'approve') {
   } else {
     fail('give one of --flat, --lift or --bw');
   }
-  // --table <key> is the by-bodyweight table that moves this exercise with /weight; without it everyone scores the same.
+  // --table <key> is the by-bodyweight table that moves this exercise with /weight. Every priced exercise needs one, so
+  // nobody is scored by a 150 lb row they do not belong to; only a flat 0 (tracked, no points) has nothing to scale.
   const table = flag('table');
-  if (table !== undefined) pricing.table = table;
+  const tables = pricing.kind === 'lift' ? LIFT_TABLES : pricing.kind === 'flat' ? REPS_TABLES : BODYWEIGHT_TABLES;
+  if (table === undefined) {
+    if (!(pricing.kind === 'flat' && pricing.p === 0)) fail('--table <key> is required: add the exercise\'s by-bodyweight table to src/strengthLevelTables.ts, deploy, then approve with --table.');
+  } else {
+    if (!tables[table]) fail(`No ${pricing.kind === 'lift' ? 'lift' : 'reps'} table "${table}" in src/strengthLevelTables.ts.`);
+    pricing.table = table;
+  }
   if (!pricingValid(pricing)) fail('That pricing is not valid: a price is a number >= 0 and a curve needs four positive numbers.');
 
   // --as <new-key> renames the exercise (and so its slash command) as it is priced; without it the key stays as the player typed it.
