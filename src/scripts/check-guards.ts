@@ -31,7 +31,8 @@ const q = await import('../db/queries.js');
 const { db, invalidateScoring } = await import('../db/index.js');
 const { parseApproveArgs } = await import('./approve-args.js');
 const { buildCommands } = await import('../commands/index.js');
-const { plainText } = await import('../exercises.js');
+const { plainText, formatAmount } = await import('../exercises.js');
+const S_format = (n: number): string => formatAmount(n, 'flights');
 const conn = db();
 
 // --- the record itself ---
@@ -59,6 +60,13 @@ check('approveExercise refuses an empty label', throws(() => q.approveExercise('
 check('approveExercise refuses a key that is a bot command', throws(() => q.approveExercise('zzlift', { label: 'Zz', pricing: { kind: 'lift', oneRM: rowAnchors, table: 'row' }, newKey: 'today' })) !== null && q.getExercise('zzlift')?.pending === true);
 check('a distance may be priced per mile with no table, but only flat', throws(() => q.approveExercise('zzlift', { label: 'Zz', pricing: { kind: 'lift', oneRM: rowAnchors, table: 'row' }, unit: 'mi' })) !== null);
 check('a bad unit is refused', throws(() => q.approveExercise('zzlift', { label: 'Zz', pricing: { kind: 'flat', p: 5 }, unit: 'min' })) !== null);
+q.ensureUser('u1', 'Alex');
+q.createPendingExercise('zzstairs', 'Zz stairs');
+q.addEntry(GUILD, 'u1', 'zzstairs', '2026-10-05', 4);
+const flights = q.approveExercise('zzstairs', { label: 'Zz stairs', pricing: { kind: 'flat', p: 9 }, unit: 'flights' });
+check('a cardio price per flight is approvable with no table and the exercise counts flights', flights?.unit === 'flights' && q.priceAt(flights, null) === 9);
+check('flights are not reps: they stay out of the reps total', !q.listExercises().filter((e) => e.unit === 'reps').some((e) => e.key === 'zzstairs'));
+check('flights read as flights', S_format(1) === '1 flight' && S_format(4) === '4 flights');
 q.createPendingExercise('zzswim', 'Zz swim');
 const dist = q.approveExercise('zzswim', { label: 'Zz swim', pricing: { kind: 'flat', p: 1.2 }, unit: 'yd' });
 check('a flat price per yard is approvable and the exercise counts yards', dist?.unit === 'yd' && q.priceAt(dist, null) === 1.2);
@@ -126,6 +134,8 @@ const bad: [string, string[]][] = [
   ['an unknown command', ['price', 'k']],
   ['an extra positional', ['approve', 'k', 'extra', '--label', 'X', '--flat', '5']],
   ['a bad unit', ['approve', 'k', '--label', 'X', '--flat', '5', '--unit', 'furlongs']],
+  ['--unit reps spelled out (not a cardio unit)', ['approve', 'k', '--label', 'X', '--flat', '5', '--unit', 'reps', '--table', 'abrolls']],
+  ['--unit with a lift', ['approve', 'k', '--label', 'X', '--lift', '1,2,3,4', '--unit', 'flights', '--table', 'row']],
 ];
 for (const [name, args] of bad) {
   const parsed = ((): string | null => {

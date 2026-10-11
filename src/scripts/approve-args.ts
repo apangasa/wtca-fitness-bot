@@ -1,14 +1,14 @@
 // Command line of approve-exercise, parsed strictly: an unknown flag, a missing value, a flag that takes no value given one, two
 // kinds of price at once, or a list that is not four numbers is an error and never a guess. Pure, so check-guards.ts can test it.
 import { parseArgs } from 'node:util';
-import type { Unit } from '../exercises.js';
+import { APPROVE_UNITS, type Unit } from '../exercises.js';
 import type { BodyweightSpec, PricingSpec } from '../scoring.js';
 
 export const APPROVE_USAGE =
-  'usage: approve <key> --label "Name" (--flat <p> [--unit mi|yd] | --lift <b,n,i,a> | --bw <p> --k <share> (--reps <b,n,i,a> | --onerm <b,n,i,a>) [--assist])\n' +
+  'usage: approve <key> --label "Name" (--flat <p> [--unit mi|yd|flights] | --lift <b,n,i,a> | --bw <p> --k <share> (--reps <b,n,i,a> | --onerm <b,n,i,a>) [--assist])\n' +
   '                    --table <key> [--note "..."] [--as <new-key>] [--dry-run]\n' +
   '       merge <key> --into <existing-key> [--dry-run]\n' +
-  '--table is the exercise\'s by-bodyweight table in src/strengthLevelTables.ts and is required (only --flat 0, or a distance with --unit, may go without).\n' +
+  '--table is the exercise\'s by-bodyweight table in src/strengthLevelTables.ts and is required (only --flat 0, or a cardio price with --unit, may go without).\n' +
   '--dry-run runs it, shows how every total moves, and rolls it back.';
 
 export type ApproveCommand =
@@ -102,7 +102,9 @@ export function parseApproveArgs(argv: string[]): ApproveCommand {
     pricing.table = values.table;
   }
   const unit = values.unit ?? 'reps';
-  if (unit !== 'reps' && unit !== 'mi' && unit !== 'yd') throw new Error(`--unit is mi or yd, not "${unit}"`);
+  if (!APPROVE_UNITS.includes(unit as Unit) || unit === 'reps' && values.unit !== undefined) {
+    throw new Error(`--unit is ${APPROVE_UNITS.filter((u) => u !== 'reps').join(', ')}, not "${unit}"`);
+  }
   return {
     command,
     key,
@@ -110,7 +112,7 @@ export function parseApproveArgs(argv: string[]): ApproveCommand {
     pricing,
     note: values.note?.trim() || null,
     newKey: values.as,
-    unit,
+    unit: unit as Unit,
     dryRun,
   };
 }

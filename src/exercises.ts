@@ -1,7 +1,13 @@
 import { BW_REFERENCE } from './strengthLevelTables.js';
 
 /** What an exercise counts; distances have their own units because 25yd and 25m laps differ. */
-export type Unit = 'reps' | 'mi' | 'km' | 'yd' | 'm' | 'min';
+export type Unit = 'reps' | 'mi' | 'km' | 'yd' | 'm' | 'min' | 'flights';
+
+/**
+ * Units a queued exercise can be priced in: reps as typed, or a cardio unit that a flat price is quoted per (docs/points-cardio.md).
+ * Cardio does not follow body weight, so these are the only prices that go in without a by-bodyweight table.
+ */
+export const APPROVE_UNITS: readonly Unit[] = ['reps', 'mi', 'yd', 'flights'];
 
 export type Metric = Unit | 'pts';
 
@@ -87,6 +93,9 @@ export const YARDS_PER_METER = 1.0936133;
 /** Typo guard per entry, not a cap. */
 export const MAX_SINGLE_ENTRY: Record<string, number> = { run: 50, swim: 10000 };
 
+/** The same guard for a cardio unit with no entry above (an exercise approved later in that unit). */
+export const MAX_SINGLE_ENTRY_BY_UNIT: Partial<Record<Unit, number>> = { flights: 200 };
+
 /** Keys must be Discord-command-legal (/pushups). */
 export function normalizeKey(raw: string): string {
   return raw
@@ -102,6 +111,7 @@ export function formatAmount(amount: number, unit: Metric): string {
   // Points render bare like reps; counts are grouped (season totals reach five figures).
   if (unit === 'reps' || unit === 'pts') return Math.round(amount).toLocaleString('en-US');
   if (unit === 'min') return `${trimNumber(amount)}min`;
+  if (unit === 'flights') return `${trimNumber(amount)} ${amount === 1 ? 'flight' : 'flights'}`;
   return `${trimNumber(amount)}${unit}`;
 }
 

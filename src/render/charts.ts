@@ -391,6 +391,7 @@ export async function renderPersonalCard(input: PersonalCardInput): Promise<Buff
     yd: 'Distance',
     m: 'Distance',
     min: 'Time',
+    flights: 'Climbing',
   };
 
   const scoredRows = shown

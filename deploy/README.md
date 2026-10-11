@@ -69,7 +69,7 @@ $SSH "cd /opt/wtca-fitness-bot && sudo env DB_PATH=$DB node dist/scripts/queue.j
 # price one, or fold it into an existing one. Three kinds of price (docs/points-new-exercises.md). The command line is parsed strictly: an unknown
 # flag, a missing value, two kinds of price, or a list that is not four numbers is an error. Add --dry-run to any command to see how every total
 # moves and roll it back. It also refuses while a closed season is not frozen yet (the bot freezes it at start or at the recap time):
-#   --flat <p>        a flat price per rep (per mile or yard with --unit mi|yd); 0 only tracks it
+#   --flat <p>        a flat price per rep, or a cardio price per mile, yard or flight with --unit mi|yd|flights (no table: cardio does not follow body weight); 0 only tracks it
 #   --lift <b,n,i,a>  a weighted lift: Strength Level's men's 1RMs at 150 lb (Beginner,Novice,Intermediate,Advanced),
 #                     dumbbells combined. A rep pays by the lift curve at the logged weight; no weight scores 0
 #   --bw <p> --k <share> --reps <b,n,i,a> [--assist]

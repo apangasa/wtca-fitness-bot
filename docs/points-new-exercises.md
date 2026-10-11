@@ -15,6 +15,7 @@ Players log an unknown exercise with `/new` (reps, optional weight, sets and not
 |---|---|---|
 | 1RM table (a lift with a weight) | Lift | The curve in [points-lifts.md](points-lifts.md), from the four 1RMs (Beginner, Novice, Intermediate, Advanced); dumbbells doubled to the combined convention |
 | Reps table, no load | Flat, with the table | The mean of 120 ÷ Novice reps and 240 ÷ Intermediate reps at the 150 lb row; at another body weight it scales with the person's row ([points-bodyweight-exercises.md](points-bodyweight-exercises.md)) |
+| Cardio (run, swim, stairs): sustained effort counted in a distance or climbing unit | Flat per unit (`--unit mi`, `yd` or `flights`), no table | Time at the reference effort times the lifting rate, [points-cardio.md](points-cardio.md); cardio does not follow body weight ([points-weight-class.md](points-weight-class.md)) |
 | Reps table, optional added load | Bodyweight with load | The flat price (same rule), plus k (the share of body weight counted as load) and the reps at each level ([points-lifts.md](points-lifts.md)) |
 
 3. **Source every judgement.** k comes from measured data or segment masses, never a guess. If the table counts a different movement from the one logged (as happened with the calf raise), show the evidence for the conversion in [points-bodyweight-exercises.md](points-bodyweight-exercises.md).
@@ -35,7 +36,7 @@ node dist/scripts/approve-exercise.js approve <key> --label "Ring Dip" --bw 12 -
 # the key players typed is the queued key (tricepsextensions); --as gives the exercise, and so its slash command, a better one
 node dist/scripts/approve-exercise.js approve tricepsextensions --label "Machine Tricep Extension" --lift 58,96,145,204 --table machinetricepextensions --as machinetricepextension
 
-# a distance has no by-bodyweight table: a flat price per mile or yard with --unit
+# cardio has no by-bodyweight table: a flat price per mile, yard or flight with --unit
 node dist/scripts/approve-exercise.js approve <key> --label "Rowing" --flat 90 --unit yd
 
 # fold it into an existing exercise instead (same unit; weighted entries need a weighted target)

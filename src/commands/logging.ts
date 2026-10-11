@@ -4,6 +4,7 @@ import {
   BODY_LB,
   MAX_LOAD_LB,
   MAX_SINGLE_ENTRY,
+  MAX_SINGLE_ENTRY_BY_UNIT,
   YARDS_PER_METER,
   formatAmount,
   formatPoints,
@@ -159,7 +160,7 @@ function shortcutCommand(ex: ExerciseRow): CommandDef {
           )
           .setRequired(true)
           .setMinValue(0.01)
-          .setMaxValue(MAX_SINGLE_ENTRY[ex.key] ?? 100000),
+          .setMaxValue(MAX_SINGLE_ENTRY[ex.key] ?? MAX_SINGLE_ENTRY_BY_UNIT[ex.unit] ?? 100000),
       );
       if (ex.unit === 'yd') {
         // Meters are converted to yards.

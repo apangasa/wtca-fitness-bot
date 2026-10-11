@@ -1,5 +1,5 @@
 import { DateTime } from 'luxon';
-import { RESERVED_COMMAND_NAMES, canonName, type Unit, type WeightMode } from '../exercises.js';
+import { APPROVE_UNITS, RESERVED_COMMAND_NAMES, canonName, type Unit, type WeightMode } from '../exercises.js';
 import {
   SCORING,
   approvalProblem,
@@ -307,25 +307,22 @@ export interface ApproveSpec {
   note?: string | null;
   // The key (and so the slash command) the exercise ends up with; players type the queued key, so it is often not the one wanted.
   newKey?: string;
-  // What the exercise counts when it is not reps: only a flat price can be per mile or per yard.
+  // What the exercise counts when it is not reps (a cardio unit): only a flat price can be per mile, yard or flight.
   unit?: Unit;
 }
 
 /** A key the slash command can use: lowercase letters, digits and hyphens, up to 32. */
 export const KEY_PATTERN = /^[a-z0-9-]{1,32}$/;
 
-/** Units a queued exercise can be priced in: reps as typed, or a distance that a flat price is quoted per. */
-export const APPROVE_UNITS: readonly Unit[] = ['reps', 'mi', 'yd'];
-
 /**
  * Prices a pending exercise, optionally under a new key; entries need no backfill because points are computed from the row.
  * The one place a pricing record is written for a queued exercise, so every rule is enforced here and not only in the script.
  */
 export function approveExercise(key: string, spec: ApproveSpec): ExerciseRow | null {
-  // A distance price is quoted per mile or yard and has no by-bodyweight table; everything else follows body weight.
+  // A cardio price is quoted per mile, yard or flight and has no by-bodyweight table (cardio does not follow body weight); everything else does.
   const unit = spec.unit ?? 'reps';
   if (!APPROVE_UNITS.includes(unit)) throw new Error(`unit must be one of ${APPROVE_UNITS.join(', ')}`);
-  if (unit !== 'reps' && spec.pricing.kind !== 'flat') throw new Error('only a flat price can be per mile or per yard');
+  if (unit !== 'reps' && spec.pricing.kind !== 'flat') throw new Error('only a flat price can be per mile, yard or flight');
   const problem = unit !== 'reps' && spec.pricing.kind === 'flat' && spec.pricing.table === undefined && spec.pricing.p > 0
     ? null
     : approvalProblem(spec.pricing);
