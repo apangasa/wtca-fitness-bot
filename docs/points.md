@@ -44,7 +44,8 @@ Bodyweight and cardio prices. Bodyweight prices follow your weight class: enter 
 | Calf raise | 1.4 per rep |
 | Run | 521 per mile |
 | Swim | 103 per 100 yd |
-| Flight of stairs, ankle alphabet | 0 (tracked, no points) |
+| Ankle alphabet | 0 (tracked, no points) |
+| Stairs | Cardio, per flight; price not set yet, scores 0 until it is ([points-cardio.md](points-cardio.md)) |
 
 <script type="module" src="assets/price-widget.js"></script>
 

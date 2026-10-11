@@ -13,7 +13,7 @@ Strength differs a lot with body weight, so the same absolute lift is a rarer pe
 - **Loaded lifts:** the four 1RM anchors are Strength Level's rows for the person's weight ([points-lifts.md](points-lifts.md)).
 - **Weighted bodyweight exercises** (added load, assisted pull-ups): the load is k × the person's body weight plus the added load (assisted pull-ups use body weight minus the assistance), with anchors from Strength Level's rows for that weight, and the curve scaled so a bodyweight rep pays the person's own flat price.
 - **Bodyweight exercises with no added load** pay a flat price from the person's own row: the mean of 120 ÷ Novice reps and 240 ÷ Intermediate reps at their weight ([points-bodyweight-exercises.md](points-bodyweight-exercises.md)). The calf raise keeps its 1.4 at 150 lb and scales with its row; the assisted ab-roll is 0.64 × the person's ab-roll price.
-- **Cardio does not follow body weight.** It pays per distance.
+- **Cardio does not follow body weight.** It pays a flat price per unit (a mile, a yard, a flight of stairs), the same for everyone. Decided 2026-10-11, and applied to stairs the same day ([points-cardio.md](points-cardio.md)). Cardio performance norms are published by age and sex, not by body weight, so there is no by-body-weight table to follow; a cardio exercise is therefore priced without `--table`.
 
 ## Why Strength Level's own rows, not a scaling formula
 

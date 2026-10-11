@@ -86,7 +86,7 @@ The exercise is a kneeling rollout on an elbow-support roller, with the forearms
 
 ## Activities that earn no points
 
-Trivial activities earn no points. They can be logged for tracking, case by case. The flight of stairs and the ankle alphabet are tracked at 0.
+Trivial activities earn no points. They can be logged for tracking, case by case. The ankle alphabet is tracked at 0. Stairs is not in this group: it is cardio, priced per flight ([points-cardio.md](points-cardio.md)).
 
 ## Sources
 

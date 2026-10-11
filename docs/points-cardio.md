@@ -1,6 +1,6 @@
 # Cardio points
 
-How run and swim are scored. Overview: [points.md](points.md). The ladder behind the numbers: [points-foundation.md](points-foundation.md).
+How run, swim and stairs are scored. Overview: [points.md](points.md). The ladder behind the numbers: [points-foundation.md](points-foundation.md).
 
 ## Principle: equal time at equal effort
 
@@ -33,6 +33,15 @@ Yards are the unit. Meters are converted at × 1.0936, so the same pool distance
 **Consistency check.** A swimming mile (1,760 yd) pays 1,810, which is 3.5 times a running mile (521): the middle of the 3-4 times range the energy-cost literature gives. This is a check, not an input.
 
 The 2018 U.S. Masters Swimming 1-Hour ePostal Championship (590 men; median 1:35 per 100 yd) describes committed competitive swimmers and is not used as a reference.
+
+## Stairs: cardio, counted in flights (price not set)
+
+Stairs is cardio, decided 2026-10-11. The effort is sustained aerobic work over time, not resistance, and there are no by-body-weight reps standards to price it against. It is counted in **flights** (the `flights` unit), pays a flat price per flight for everyone like run and swim, and takes no `--table` ([points-weight-class.md](points-weight-class.md)). A loaded or step-up variant with added weight would be a separate strength exercise.
+
+**The price is not set.** Until it is, stairs and the flight of stairs score 0. It follows the principle above, a flight's price being the minutes a flight takes at a reference effort times the lifting rate, and each input needs a source before it is used:
+
+- **Time per flight at the reference pace.** Needs the steps in a flight and a sourced climbing rate. A 1997 calorimetry study ([energy cost of stair climbing and descending](https://pubmed.ncbi.nlm.nih.gov/9309638/)) used 70 steps a minute, but it does not give the steps per flight.
+- **How to scale effort.** Fast stair climbing is rated about 6.5 METs against about 9.8 for running at 6 mph ([Compendium of Physical Activities](https://pacompendium.com/older-adult-compendium/), read through secondary tables; the primary tables still need checking). Equal time at equal effort needs a stated way to compare efforts, and METs is one candidate.
 
 ## Figures that follow
 
