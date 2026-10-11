@@ -1,30 +1,29 @@
+import { BW_REFERENCE } from './strengthLevelTables.js';
+
 /** What an exercise counts; distances have their own units because 25yd and 25m laps differ. */
 export type Unit = 'reps' | 'mi' | 'km' | 'yd' | 'm' | 'min';
 
 export type Metric = Unit | 'pts';
 
-/** Reference body weight in lb. */
-export const BODY_LB = 150;
+/** Reference body weight in lb (the 150 lb row of Strength Level's tables). */
+export const BODY_LB = BW_REFERENCE;
+
+/** Largest weight in lb a log or /new will take; a typo guard, not a cap. */
+export const MAX_LOAD_LB = 2000;
+
+/** Slash commands that are not exercises; an exercise key equal to one would replace it. */
+export const RESERVED_COMMAND_NAMES: ReadonlySet<string> = new Set([
+  'undo', 'today', 'leaderboard', 'race', 'me', 'seasons', 'name', 'recap', 'cleanup', 'new', 'queue', 'weight',
+]);
+
+/** Player-typed text made safe to print: one line, no control characters, capped. For names and notes shown outside Discord. */
+export function plainText(raw: string, max = 60): string {
+  const clean = raw.replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]+/g, ' ').replace(/\s+/g, ' ').trim();
+  return clean.length > max ? `${clean.slice(0, max - 1)}…` : clean;
+}
 
 /** load: the logged weight; add: the logged load plus what a bodyweight rep moves; assist: body weight minus the assistance. */
 export type WeightMode = 'load' | 'add' | 'assist';
-
-export function effectiveWeight(mode: WeightMode, weight: number, ref: number): number {
-  if (mode === 'add') return ref + weight;
-  if (mode === 'assist') return Math.max(BODY_LB - weight, 0);
-  return weight;
-}
-
-/** Fallback price per rep for a row with no pricing record: base x effective weight / reference weight. */
-export function pointsPerRepAt(
-  base: number,
-  ref: number | null,
-  mode: WeightMode,
-  weight: number | null,
-): number {
-  if (ref === null || weight === null) return base;
-  return (base * effectiveWeight(mode, weight, ref)) / ref;
-}
 
 export interface ExerciseSeed {
   key: string;

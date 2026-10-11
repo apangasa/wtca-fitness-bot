@@ -1,16 +1,17 @@
 import { DateTime } from 'luxon';
-import { canonName, type Unit, type WeightMode } from '../exercises.js';
+import { RESERVED_COMMAND_NAMES, canonName, type Unit, type WeightMode } from '../exercises.js';
 import {
   SCORING,
+  approvalProblem,
   buildCurve,
-  legacyCurve,
   parsePricing,
   pricingColumns,
-  pricingValid,
+  unpricedCurve,
   type PricingSpec,
 } from '../scoring.js';
 import { BW_MAX, BW_MIN, inBodyweightRange } from '../strengthLevelTables.js';
-import { previousDayKey } from '../time.js';
+import { closedSeasons, type Season } from '../seasons.js';
+import { dayKeyFor, previousDayKey } from '../time.js';
 import { db, invalidateScoring } from './index.js';
 
 export interface UserRow {
@@ -26,7 +27,7 @@ export interface ExerciseRow {
   sortOrder: number;
   // Display price derived from the pricing record; what a rep pays is priceAt().
   pointsPerRep: number;
-  // Pricing record; null scores from price x weight / reference weight.
+  // Pricing record; null (a pending exercise) scores 0.
   pricing: PricingSpec | null;
   // Null for a plain counted exercise.
   refWeight: number | null;
@@ -63,13 +64,8 @@ export interface EntryRow {
 export const POINTS_SQL = 'entry_points(e.exercise_key, e.amount, e.weight, e.user_id)';
 
 /** Price per rep at a logged weight (null = none) for a person of that body weight. */
-export function priceAt(
-  ex: Pick<ExerciseRow, 'pricing' | 'pointsPerRep' | 'refWeight' | 'weightMode'>,
-  weight: number | null,
-  bodyLb: number = SCORING.BODY_LB,
-): number {
-  const curve = ex.pricing ? buildCurve(ex.pricing, bodyLb) : legacyCurve(ex.pointsPerRep, ex.refWeight, ex.weightMode);
-  return curve(weight);
+export function priceAt(ex: Pick<ExerciseRow, 'pricing'>, weight: number | null, bodyLb: number = SCORING.BODY_LB): number {
+  return (ex.pricing ? buildCurve(ex.pricing, bodyLb) : unpricedCurve)(weight);
 }
 
 /** The body weight set with /weight, or null. */
@@ -212,26 +208,6 @@ export function getExercise(key: string): ExerciseRow | null {
   return r ? toExercise(r) : null;
 }
 
-export function addExercise(key: string, label: string, unit: Unit, pointsPerRep: number): ExerciseRow {
-  const conn = db();
-  const next = conn.prepare('SELECT COALESCE(MAX(sort_order) + 1, 0) AS n FROM exercises').get() as { n: number };
-  conn
-    .prepare(
-      `INSERT INTO exercises (key, label, unit, sort_order, active, points_per_rep) VALUES (?, ?, ?, ?, 1, ?)
-       ON CONFLICT(key) DO UPDATE SET label = excluded.label, unit = excluded.unit, active = 1,
-                                      points_per_rep = excluded.points_per_rep`,
-    )
-    .run(key, label, unit, next.n, pointsPerRep);
-  invalidateScoring();
-  return getExercise(key)!;
-}
-
-export function removeExercise(key: string): boolean {
-  const changed = db().prepare('UPDATE exercises SET active = 0 WHERE key = ?').run(key).changes > 0;
-  invalidateScoring();
-  return changed;
-}
-
 export const PENDING_SUFFIX = ' (pending)';
 export const MAX_PENDING = 30;
 
@@ -331,19 +307,36 @@ export interface ApproveSpec {
   note?: string | null;
   // The key (and so the slash command) the exercise ends up with; players type the queued key, so it is often not the one wanted.
   newKey?: string;
+  // What the exercise counts when it is not reps: only a flat price can be per mile or per yard.
+  unit?: Unit;
 }
 
 /** A key the slash command can use: lowercase letters, digits and hyphens, up to 32. */
 export const KEY_PATTERN = /^[a-z0-9-]{1,32}$/;
 
-/** Prices a pending exercise, optionally under a new key; entries need no backfill because points are computed from the row. */
+/** Units a queued exercise can be priced in: reps as typed, or a distance that a flat price is quoted per. */
+export const APPROVE_UNITS: readonly Unit[] = ['reps', 'mi', 'yd'];
+
+/**
+ * Prices a pending exercise, optionally under a new key; entries need no backfill because points are computed from the row.
+ * The one place a pricing record is written for a queued exercise, so every rule is enforced here and not only in the script.
+ */
 export function approveExercise(key: string, spec: ApproveSpec): ExerciseRow | null {
-  if (!pricingValid(spec.pricing)) {
-    throw new Error('pricing must be a flat price >= 0, four positive 1RM anchors, or a bodyweight curve');
-  }
+  // A distance price is quoted per mile or yard and has no by-bodyweight table; everything else follows body weight.
+  const unit = spec.unit ?? 'reps';
+  if (!APPROVE_UNITS.includes(unit)) throw new Error(`unit must be one of ${APPROVE_UNITS.join(', ')}`);
+  if (unit !== 'reps' && spec.pricing.kind !== 'flat') throw new Error('only a flat price can be per mile or per yard');
+  const problem = unit !== 'reps' && spec.pricing.kind === 'flat' && spec.pricing.table === undefined && spec.pricing.p > 0
+    ? null
+    : approvalProblem(spec.pricing);
+  if (problem) throw new Error(problem);
+  if (!spec.label.trim()) throw new Error('a label is required');
   const newKey = spec.newKey !== undefined && spec.newKey !== key ? spec.newKey : null;
   if (newKey !== null && !KEY_PATTERN.test(newKey)) {
     throw new Error('the new key must be lowercase letters, digits and hyphens (up to 32), so it can be a slash command');
+  }
+  if (RESERVED_COMMAND_NAMES.has(newKey ?? key)) {
+    throw new Error(`"${newKey ?? key}" is the name of a bot command, so an exercise cannot take it; pick another key`);
   }
   // ref_weight and weight_mode tell the slash command what to ask for; points_per_rep is display only.
   const cols = pricingColumns(spec.pricing);
@@ -354,10 +347,10 @@ export function approveExercise(key: string, spec: ApproveSpec): ExerciseRow | n
     }
     const changed = conn
       .prepare(
-        `UPDATE exercises SET label = ?, points_per_rep = ?, ref_weight = ?, weight_mode = ?, weight_note = ?, pricing = ?, pending = 0
+        `UPDATE exercises SET label = ?, unit = ?, points_per_rep = ?, ref_weight = ?, weight_mode = ?, weight_note = ?, pricing = ?, pending = 0
          WHERE key = ? AND pending = 1`,
       )
-      .run(spec.label, cols.display, cols.ref, cols.mode, spec.note ?? null, cols.json, key).changes;
+      .run(spec.label, unit, cols.display, cols.ref, cols.mode, spec.note ?? null, cols.json, key).changes;
     if (changed === 0) return false;
     if (newKey !== null) {
       // The key is a foreign key target: copy the row, repoint the entries, drop the old row.
@@ -377,15 +370,25 @@ export function approveExercise(key: string, spec: ApproveSpec): ExerciseRow | n
   return approved ? getExercise(newKey ?? key) : null;
 }
 
-/** Moves a pending exercise's entries into an existing one; returns how many moved, or null for an invalid pair. */
-export function mergeExercise(from: string, into: string): number | null {
+/**
+ * Moves a pending exercise's entries into an existing one and returns how many moved. Throws, saying why, when the pair is invalid:
+ * the source must be pending, the target a normal active exercise counted the same way, and weighted entries need a weighted target.
+ */
+export function mergeExercise(from: string, into: string): number {
   const conn = db();
-  const run = conn.transaction((): number | null => {
-    const src = conn.prepare('SELECT pending FROM exercises WHERE key = ?').get(from) as { pending: number } | undefined;
-    const dst = conn.prepare('SELECT pending, active FROM exercises WHERE key = ?').get(into) as
-      | { pending: number; active: number }
+  const run = conn.transaction((): number => {
+    const src = conn.prepare('SELECT pending, unit FROM exercises WHERE key = ?').get(from) as { pending: number; unit: string } | undefined;
+    const dst = conn.prepare('SELECT pending, active, unit, ref_weight FROM exercises WHERE key = ?').get(into) as
+      | { pending: number; active: number; unit: string; ref_weight: number | null }
       | undefined;
-    if (from === into || !src || src.pending !== 1 || !dst || dst.pending === 1 || dst.active !== 1) return null;
+    if (from === into) throw new Error('cannot merge an exercise into itself');
+    if (!src || src.pending !== 1) throw new Error(`"${from}" is not a pending exercise`);
+    if (!dst || dst.pending === 1 || dst.active !== 1) throw new Error(`"${into}" is not a normal active exercise`);
+    if (src.unit !== dst.unit) throw new Error(`"${from}" counts ${src.unit} and "${into}" counts ${dst.unit}, so their entries cannot be added`);
+    const weighted = (conn.prepare('SELECT COUNT(*) AS n FROM entries WHERE exercise_key = ? AND weight IS NOT NULL').get(from) as { n: number }).n;
+    if (weighted > 0 && dst.ref_weight === null) {
+      throw new Error(`${weighted} of "${from}" entries have a weight and "${into}" takes none, so the weights would be lost`);
+    }
     const moved = conn.prepare('UPDATE entries SET exercise_key = ? WHERE exercise_key = ?').run(into, from).changes;
     conn.prepare('DELETE FROM exercises WHERE key = ?').run(from);
     return moved;
@@ -695,6 +698,23 @@ export function hasSeasonStandings(seasonId: number, guildId: string): boolean {
     .prepare('SELECT COUNT(*) AS n FROM season_standings WHERE season_id = ? AND guild_id = ?')
     .get(seasonId, guildId) as { n: number };
   return r.n > 0;
+}
+
+/** Closed seasons with logged entries whose board has not been frozen yet: a price change now would be baked into the trophy. */
+export function unfrozenClosedSeasons(guildId: string, todayKey = dayKeyFor()): Season[] {
+  return closedSeasons(todayKey).filter(
+    (s) => !hasSeasonStandings(s.id, guildId) && scoreboard(guildId, s.startDay, s.endDay).length > 0,
+  );
+}
+
+/** Freezes every closed season that is not frozen yet, whether or not anything can be posted; returns the ids frozen. */
+export function freezeClosedSeasons(guildId: string, todayKey = dayKeyFor()): number[] {
+  const frozen: number[] = [];
+  for (const season of unfrozenClosedSeasons(guildId, todayKey)) {
+    saveSeasonStandings(season.id, guildId, scoreboard(guildId, season.startDay, season.endDay));
+    frozen.push(season.id);
+  }
+  return frozen;
 }
 
 /** Freezes a closed season's board; INSERT OR IGNORE so a frozen season is never restated. */

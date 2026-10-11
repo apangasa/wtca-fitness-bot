@@ -2,10 +2,11 @@
 // and replaces slash-command entries for days a post covers.
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { config } from '../config.js';
+import { requireGuildId } from '../config.js';
 import { db } from '../db/index.js';
 import { dayTotals, ensureUser, getUser, setDayTotal } from '../db/queries.js';
 import { formatAmount } from '../exercises.js';
+import { isClosed, seasonForDay } from '../seasons.js';
 import { parseHistory } from './parse-history.js';
 
 interface RawMessage {
@@ -16,6 +17,8 @@ interface RawMessage {
 }
 
 const commit = process.argv.includes('--commit');
+const allowClosed = process.argv.includes('--allow-closed');
+const guildId = requireGuildId();
 const outDir = join(process.cwd(), 'out');
 
 const people = JSON.parse(readFileSync(join(outDir, 'people.json'), 'utf8')) as Record<string, string | null>;
@@ -67,9 +70,16 @@ console.log(`${firstSeen.length} people, ${new Set(rows.map((r) => r.dayKey)).si
 
 // Show what changes against what is already stored.
 const affectedDays = [...new Set(rows.map((r) => r.dayKey))];
+
+// Totals are SET, replacing what is stored, so a day in a closed season would rewrite history that its frozen board already counted.
+const closedDays = affectedDays.filter((d) => isClosed(seasonForDay(d)));
+if (closedDays.length > 0 && !allowClosed) {
+  console.error(`Refusing: ${closedDays.length} of these days (${closedDays[0]} ...) are in a closed season. Pass --allow-closed if rewriting them is the point.`);
+  process.exit(1);
+}
 const existing = new Map<string, number>();
 for (const day of affectedDays) {
-  for (const t of dayTotals(config.guildId, day)) {
+  for (const t of dayTotals(guildId, day)) {
     existing.set(`${day}|${t.userId}|${t.exerciseKey}`, t.total);
   }
 }
@@ -114,7 +124,7 @@ for (const userId of firstSeen) {
 }
 
 const apply = db().transaction(() => {
-  for (const r of rows) setDayTotal(config.guildId, r.userId, r.exerciseKey, r.dayKey, r.total);
+  for (const r of rows) setDayTotal(guildId, r.userId, r.exerciseKey, r.dayKey, r.total);
 });
 apply();
 

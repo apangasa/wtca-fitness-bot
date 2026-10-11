@@ -1,5 +1,6 @@
 import {
   AttachmentBuilder,
+  MessageFlags,
   type AutocompleteInteraction,
   type ChatInputCommandInteraction,
   type RESTPostAPIApplicationCommandsJSONBody,
@@ -11,6 +12,18 @@ export interface CommandDef {
   data: RESTPostAPIApplicationCommandsJSONBody;
   execute(interaction: ChatInputCommandInteraction): Promise<void>;
   autocomplete?(interaction: AutocompleteInteraction): Promise<void>;
+}
+
+/** The guild id, or null after telling the person to use the server (not a DM). */
+export async function guildOnly(interaction: ChatInputCommandInteraction): Promise<string | null> {
+  if (interaction.guildId) return interaction.guildId;
+  await interaction.reply({ content: 'Run this in the server, not a DM.', flags: MessageFlags.Ephemeral });
+  return null;
+}
+
+/** An ephemeral reply, for a refusal only the sender should see. */
+export async function reject(interaction: ChatInputCommandInteraction, content: string): Promise<void> {
+  await interaction.reply({ content, flags: MessageFlags.Ephemeral });
 }
 
 export function guildIdOf(interaction: ChatInputCommandInteraction): string | null {

@@ -27,13 +27,7 @@ import { renderHallOfFame, renderLeaderboard, renderPersonalCard, renderTrend } 
 import { closedSeasons, currentSeason, isClosed, seasonRange } from '../seasons.js';
 import { dayKeyFor, dayKeysBetween, lastNDayKeys } from '../time.js';
 import { RANGE_OPTION, rangeAutocomplete, resolveRange } from './ranges.js';
-import { byOption, exerciseAutocomplete, png, type CommandDef } from './types.js';
-
-async function guildOnly(interaction: ChatInputCommandInteraction): Promise<string | null> {
-  if (interaction.guildId) return interaction.guildId;
-  await interaction.reply({ content: 'Run this in the server, not a DM.', flags: MessageFlags.Ephemeral });
-  return null;
-}
+import { byOption, exerciseAutocomplete, guildOnly, png, type CommandDef } from './types.js';
 
 const RANGE_DESCRIPTION = 'Season or window (default: this season)';
 

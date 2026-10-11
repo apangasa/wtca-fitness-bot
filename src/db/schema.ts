@@ -134,3 +134,36 @@ CREATE TABLE IF NOT EXISTS guild_config (
   last_closed_season INTEGER
 );
 `;
+
+// Run after the migrations (an older database gets its columns first). Existing rows are not checked; only writes are.
+export const GUARDS = /* sql */ `
+-- Guards that hold for every writer, including raw SQL and the data-fix tool. Existing rows are not checked; only writes are.
+CREATE TRIGGER IF NOT EXISTS exercises_check_insert BEFORE INSERT ON exercises
+WHEN NEW.unit NOT IN ('reps','mi','km','yd','m','min')
+  OR NEW.weight_mode NOT IN ('load','add','assist')
+  OR (NEW.pricing IS NOT NULL AND NOT json_valid(NEW.pricing))
+BEGIN SELECT RAISE(ABORT, 'exercises: unit, weight_mode or pricing is not valid'); END;
+
+CREATE TRIGGER IF NOT EXISTS exercises_check_update BEFORE UPDATE ON exercises
+WHEN NEW.unit NOT IN ('reps','mi','km','yd','m','min')
+  OR NEW.weight_mode NOT IN ('load','add','assist')
+  OR (NEW.pricing IS NOT NULL AND NOT json_valid(NEW.pricing))
+BEGIN SELECT RAISE(ABORT, 'exercises: unit, weight_mode or pricing is not valid'); END;
+
+CREATE TRIGGER IF NOT EXISTS entries_check_insert BEFORE INSERT ON entries
+WHEN NOT (NEW.amount > 0) OR (NEW.weight IS NOT NULL AND NOT (NEW.weight >= 0))
+BEGIN SELECT RAISE(ABORT, 'entries: amount must be above 0 and weight cannot be negative'); END;
+
+-- A frozen board is never rewritten, and the weight log is append-only.
+CREATE TRIGGER IF NOT EXISTS season_standings_frozen_update BEFORE UPDATE ON season_standings
+BEGIN SELECT RAISE(ABORT, 'season_standings is frozen'); END;
+
+CREATE TRIGGER IF NOT EXISTS season_standings_frozen_delete BEFORE DELETE ON season_standings
+BEGIN SELECT RAISE(ABORT, 'season_standings is frozen'); END;
+
+CREATE TRIGGER IF NOT EXISTS user_weight_log_append_update BEFORE UPDATE ON user_weight_log
+BEGIN SELECT RAISE(ABORT, 'user_weight_log is append-only'); END;
+
+CREATE TRIGGER IF NOT EXISTS user_weight_log_append_delete BEFORE DELETE ON user_weight_log
+BEGIN SELECT RAISE(ABORT, 'user_weight_log is append-only'); END;
+`;

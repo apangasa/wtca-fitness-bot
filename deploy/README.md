@@ -18,11 +18,15 @@ login is not `ubuntu` and everything else is unchanged.
 
 ```bash
 ./deploy/push.sh <ip>           # ship source, install Node + Chromium, set up systemd
-./deploy/send-secrets.sh <ip>   # copy .env + database, then start
+./deploy/send-secrets.sh <ip> --overwrite-production   # first setup only: copy .env + local database, then start
 ```
 
-`push.sh` deliberately excludes `.env` and `*.db`, so credentials and history
-only move when you run `send-secrets.sh`.
+`send-secrets.sh` **replaces the VM's database** with the local one, so it refuses to run without `--overwrite-production`. It backs the VM's
+current database up to `/var/backups/wtca/pre-send-secrets-<time>.db` and clears the old `-wal`/`-shm` first. Once the bot has been running,
+the VM holds the real data and this script is not part of any routine.
+
+`push.sh` deliberately excludes `.env`, `*.db` (and their `-wal`/`-shm`/`-journal` files), `tools/` and `.claude/`, so credentials, history and
+local operator tooling only move when you run `send-secrets.sh`.
 
 Then stop the bot on your PC — two instances share one Discord token and would
 both reply to every command.
@@ -40,8 +44,8 @@ that lives in `/var/lib/wtca-fitness-bot/`, outside the app directory.
 
 There is no `/addexercise` any more. Exercises are rows in the database, and the starting set is `SEED_EXERCISES` in `src/exercises.ts`.
 
-- **New exercise or lift:** add it to `SEED_EXERCISES` and redeploy. A key that is not in the table yet is inserted; one that already exists is left alone, so values tuned in the database survive restarts.
-- **Change a price:** a price lives in the exercise's `pricing` column, a small JSON record (`{"kind":"flat","p":6}`, `{"kind":"lift","oneRM":[99,137,183,236]}`, or a bodyweight curve with `k`, `reps` and `p`; see `src/scoring.ts`, whose catalog tables hold every locked number). `points_per_rep` is only a display value now and `ref_weight`/`weight_mode` only say whether and how the slash command asks for a weight; neither sets a price unless the exercise has no `pricing` (a hand-made row), where the old rule applies. The bot notices an edit made by another process (the approve script, a sqlite3 session) on its next query, with no restart; restart only to register a new slash command. Prices apply to history, except closed seasons, whose boards are frozen.
+- **New exercise or lift:** add it to `SEED_EXERCISES` and redeploy. A key that is not in the table yet is inserted (with its price and weight rule); one that already exists is left alone entirely, so values tuned in the database survive restarts. The code's own catalog is checked when the bot starts (`assertCatalog`): a record that is malformed, has non-increasing anchors, or names a missing table stops the boot.
+- **Change a price:** a price lives in the exercise's `pricing` column, a small JSON record (`{"kind":"flat","p":6}`, `{"kind":"lift","oneRM":[99,137,183,236]}`, or a bodyweight curve with `k`, `reps` and `p`; see `src/scoring.ts`, whose catalog tables hold every locked number). `points_per_rep` is only a display value and `ref_weight`/`weight_mode` only say whether and how the slash command asks for a weight; none of them sets a price. A live exercise with no usable `pricing` record scores 0 and is named in the log at boot (the old price-times-weight fallback is gone). The bot notices an edit made by another process (the approve script, a sqlite3 session) on its next query, with no restart; restart only to register a new slash command. Prices apply to history, except closed seasons, whose boards are frozen.
 - **Retire one:** set `active = 0`.
 - **Before changing prices near a season boundary,** make sure the closing board has been frozen (`/seasons` shows it).
 
@@ -62,8 +66,10 @@ DB=/var/lib/wtca-fitness-bot/fitness.db
 # what is waiting, with every raw entry
 $SSH "cd /opt/wtca-fitness-bot && sudo env DB_PATH=$DB node dist/scripts/queue.js"
 
-# price one, or fold it into an existing one. Three kinds of price (docs/points-new-exercises.md):
-#   --flat <p>        a flat price per rep (per mile or yard for a distance); 0 only tracks it
+# price one, or fold it into an existing one. Three kinds of price (docs/points-new-exercises.md). The command line is parsed strictly: an unknown
+# flag, a missing value, two kinds of price, or a list that is not four numbers is an error. Add --dry-run to any command to see how every total
+# moves and roll it back. It also refuses while a closed season is not frozen yet (the bot freezes it at start or at the recap time):
+#   --flat <p>        a flat price per rep (per mile or yard with --unit mi|yd); 0 only tracks it
 #   --lift <b,n,i,a>  a weighted lift: Strength Level's men's 1RMs at 150 lb (Beginner,Novice,Intermediate,Advanced),
 #                     dumbbells combined. A rep pays by the lift curve at the logged weight; no weight scores 0
 #   --bw <p> --k <share> --reps <b,n,i,a> [--assist]
@@ -82,6 +88,7 @@ $SSH "sudo systemctl restart wtca-bot"
 
 **Noticing the queue.** A Claude Code hook (`.claude/settings.json` runs `tools/check-queue-hook.mjs`) checks the VM when you send a message in a session started in this folder, at most once every 10 minutes. It says nothing when the queue is empty or the VM is unreachable. When something is waiting it adds one line of sanitized names and counts to the model's context (never notes: those are typed by other players). It reads `queue.js --summary`, so redeploy after changing that script.
 
+Every rule above (the table is required, the anchors increase, the key is not a bot command, a merge matches units and weights) is enforced in `approveExercise`/`mergeExercise` in `src/db/queries.ts`, not only by the script, and `npm run check` tests it.
 The script prints how many entries were backfilled and how each person's current-season total
 moved. Prices follow `docs/points.md`. Closed seasons stay frozen, so only
 the live recount for a past season would change.
@@ -120,7 +127,7 @@ node tools/live-db-write.mjs "UPDATE entries SET exercise_key = '<key>' WHERE <w
 node tools/live-db-write.mjs "<same SQL>" --apply --expect <n> --label "what and why"
 ```
 
-It refuses DDL and an UPDATE or DELETE with no WHERE, backs the database up to `/var/backups/wtca/pre-datafix-<time>.db` before applying, and appends each applied fix to `tools/data-fixes.log` (local only) so a restored backup can be fixed again. `--db <file>` runs it against a local rehearsal copy instead of the VM. The bot notices the write on its next query; no restart.
+It refuses DDL, REPLACE, a WITH that writes, and an UPDATE or DELETE with no WHERE of its own; it will not write the bot's own tables (`season_standings`, `seasons`, `user_weight`, `user_weight_log`) or any exercise column except `active`, `label`, `sort_order` and `weight_note` (prices go through `approve-exercise`). Database triggers back this up: a frozen `season_standings` row and the `user_weight_log` cannot be updated or deleted by anything, an exercise with a bad unit, weight mode or non-JSON pricing cannot be written, and an entry needs an amount above 0 and no negative weight. The tool backs the database up to `/var/backups/wtca/pre-datafix-<time>.db` before applying, and appends each applied fix to `tools/data-fixes.log` (local only) so a restored backup can be fixed again. `--db <file>` runs it against a local rehearsal copy instead of the VM. The bot notices the write on its next query; no restart.
 
 ## Fast deploy (what a normal code change uses)
 

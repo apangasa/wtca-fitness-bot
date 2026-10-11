@@ -6,11 +6,10 @@ import { createHash } from 'node:crypto';
 import {
   dayDetails,
   dayTotals,
+  freezeClosedSeasons,
   getGuildConfig,
   getSeasonStandings,
-  hasSeasonStandings,
   listExercises,
-  saveSeasonStandings,
   scoreboard,
   setGuildConfig,
   type DetailRow,
@@ -128,6 +127,8 @@ export async function maybeAnnounceClosedSeasons(
   // Overridable to rehearse the rollover on a database copy.
   todayKey = dayKeyFor(),
 ): Promise<SeasonCloseOutcome> {
+  // Freeze first: it needs no channel and must not wait on a post that can fail.
+  freezeClosedSeasons(guildId, todayKey);
   const cfg = getGuildConfig(guildId);
   const pending = closedSeasons(todayKey)
     .filter((s) => s.id > (cfg.lastClosedSeason ?? 0))
@@ -145,10 +146,7 @@ export async function maybeAnnounceClosedSeasons(
   const announced: number[] = [];
   for (const season of pending) {
     const live = scoreboard(guildId, season.startDay, season.endDay);
-    if (live.length > 0 && !hasSeasonStandings(season.id, guildId)) {
-      saveSeasonStandings(season.id, guildId, live);
-    }
-    // Read back: a season frozen on an earlier attempt keeps those numbers.
+    // Read back: a season is frozen above (or on an earlier attempt) and keeps those numbers.
     const frozen = getSeasonStandings(season.id, guildId);
     const board: StandingRow[] = frozen.length > 0 ? frozen : live;
 
@@ -204,6 +202,13 @@ export function startRecapScheduler(client: Client, guildId: string): void {
 
     setTimeout(() => {
       void (async () => {
+        try {
+          // The freeze comes first and on its own, so a failing recap or post cannot leave a closed season unfrozen.
+          const frozen = freezeClosedSeasons(guildId);
+          if (frozen.length > 0) console.log(`[season] froze ${frozen.join(', ')}`);
+        } catch (err) {
+          console.error('[season] freeze failed:', err);
+        }
         try {
           // Recap the day that has already closed: dayKeyFor() is already the new day at the fire time.
           const dayKey = previousDayKey(dayKeyFor());

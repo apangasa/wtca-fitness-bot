@@ -1,10 +1,13 @@
 // Prints queued exercises with their raw entries (--summary: one line, or nothing when empty, for tools/check-queue-hook.mjs).
 // The summary reaches the model as trusted text while names and notes are player-typed, so it carries only sanitized names and counts.
-import { config } from '../config.js';
+import { requireGuildId } from '../config.js';
 import { db } from '../db/index.js';
 import { baseLabel, listPending } from '../db/queries.js';
+import { plainText } from '../exercises.js';
+import { APPROVE_USAGE } from './approve-args.js';
 
-const pending = listPending(config.guildId);
+const guildId = requireGuildId();
+const pending = listPending(guildId);
 
 if (process.argv.includes('--summary')) {
   if (pending.length === 0) process.exit(0);
@@ -31,19 +34,17 @@ const entries = db().prepare(
 );
 
 for (const p of pending) {
-  console.log(`\n${baseLabel(p.exercise)}  (key: ${p.exercise.key})`);
-  console.log(`  ${p.logs} log(s) by ${p.people.join(', ')} - ${p.reps} reps in total`);
-  if (p.exercise.weightNote) console.log(`  notes: ${p.exercise.weightNote}`);
-  for (const e of entries.all(p.exercise.key, config.guildId) as {
+  // Player-typed text (names, notes) is data: shown on one line, capped, in quotes.
+  console.log(`\n"${plainText(baseLabel(p.exercise), 40)}"  (key: ${p.exercise.key})`);
+  console.log(`  ${p.logs} log(s) by ${p.people.map((n) => `"${plainText(n, 20)}"`).join(', ')} - ${p.reps} reps in total`);
+  if (p.exercise.weightNote) console.log(`  notes (player-typed): "${plainText(p.exercise.weightNote, 300)}"`);
+  for (const e of entries.all(p.exercise.key, guildId) as {
     name: string;
     day: string;
     amount: number;
     weight: number | null;
   }[]) {
-    console.log(`    ${e.day}  ${e.name.padEnd(10)} ${String(e.amount).padStart(4)} reps${e.weight ? ` @ ${e.weight} lb` : ''}`);
+    console.log(`    ${e.day}  ${plainText(e.name, 20).padEnd(10)} ${String(e.amount).padStart(4)} reps${e.weight ? ` @ ${e.weight} lb` : ''}`);
   }
 }
-console.log(
-  '\nPrice one:  approve-exercise approve <key> --label "Name" (--flat <p> | --lift <b,n,i,a> | --bw <p> --k <share> --reps <b,n,i,a> [--assist]) [--note "..."]' +
-    '\nMerge one:  approve-exercise merge <key> --into <existing-key>',
-);
+console.log(`\n${APPROVE_USAGE}`);

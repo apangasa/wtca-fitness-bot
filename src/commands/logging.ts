@@ -2,6 +2,7 @@ import { DateTime } from 'luxon';
 import { MessageFlags, SlashCommandBuilder, type ChatInputCommandInteraction } from 'discord.js';
 import {
   BODY_LB,
+  MAX_LOAD_LB,
   MAX_SINGLE_ENTRY,
   YARDS_PER_METER,
   formatAmount,
@@ -27,23 +28,12 @@ import { renderDailyCard } from '../render/charts.js';
 import { config } from '../config.js';
 import { currentSeason, isClosed, seasonForDay, seasonRange } from '../seasons.js';
 import { dayKeyFor, formatDayKey } from '../time.js';
-import { actorName, exerciseChoices, png, type CommandDef } from './types.js';
+import { actorName, exerciseChoices, guildOnly, png, reject, type CommandDef } from './types.js';
 
 const REPS_OPTION = 'reps';
 const AMOUNT_OPTION = 'amount';
 const UNIT_OPTION = 'unit';
 const WEIGHT_OPTION = 'weight';
-const MAX_LOAD_LB = 2000;
-
-async function guildOnly(interaction: ChatInputCommandInteraction): Promise<string | null> {
-  if (interaction.guildId) return interaction.guildId;
-  await interaction.reply({ content: 'Run this in the server, not a DM.', flags: MessageFlags.Ephemeral });
-  return null;
-}
-
-async function reject(interaction: ChatInputCommandInteraction, content: string): Promise<void> {
-  await interaction.reply({ content, flags: MessageFlags.Ephemeral });
-}
 
 // Reps read "20 reps"; distances already carry their unit ("1.5mi").
 function withUnit(amount: number, unit: Unit): string {
@@ -58,10 +48,10 @@ function describeEntry(ex: ExerciseRow, amount: number, weight: number | null, s
 }
 
 interface LogOptions {
-  // Required for a lift, optional for squats, absent otherwise.
-  weight?: number | null;
+  // The typed weight: required for a lift, optional for squats, null otherwise.
+  weight: number | null;
   // Sets at this weight; reps are multiplied out.
-  sets?: number;
+  sets: number;
 }
 
 // A lift always carries the typed weight (no fallback to a previous one); squats with none are bodyweight.
@@ -69,13 +59,13 @@ async function applyLog(
   interaction: ChatInputCommandInteraction,
   ex: ExerciseRow,
   amount: number,
-  opts: LogOptions = {},
+  opts: LogOptions,
 ): Promise<void> {
   const guildId = await guildOnly(interaction);
   if (!guildId) return;
 
-  const sets = opts.sets ?? 1;
-  const weight = ex.refWeight !== null ? (opts.weight ?? null) : null;
+  const { sets } = opts;
+  const weight = ex.refWeight !== null ? opts.weight : null;
 
   if (ex.refWeight !== null) {
     if (weight === null && weightIsRequired(ex.refWeight, ex.weightMode)) {
@@ -197,8 +187,12 @@ function shortcutCommand(ex: ExerciseRow): CommandDef {
   return {
     data: builder.toJSON(),
     execute: async (interaction) => {
-      // Re-read: the row may have changed since the command list was built.
-      const current = getExercise(ex.key) ?? ex;
+      // Re-read: the row may have changed since the command list was built, and a retired or renamed one is not logged to.
+      const current = getExercise(ex.key);
+      if (!current) {
+        await reject(interaction, `**${ex.label}** is not an exercise any more (retired or renamed). Try again in a moment.`);
+        return;
+      }
       if (isLift) {
         await applyLog(interaction, current, interaction.options.getInteger(REPS_OPTION, true), {
           weight: interaction.options.getNumber(WEIGHT_OPTION, true),
@@ -211,6 +205,7 @@ function shortcutCommand(ex: ExerciseRow): CommandDef {
         if (ex.unit === 'yd' && interaction.options.getString(UNIT_OPTION) === 'm') amount *= YARDS_PER_METER;
         await applyLog(interaction, current, amount, {
           weight: current.refWeight !== null ? interaction.options.getNumber(WEIGHT_OPTION) : null,
+          sets: 1,
         });
       }
     },

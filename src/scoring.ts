@@ -1,6 +1,6 @@
 // Points for one entry: reps x price per rep at the logged weight. Pure and unrounded; method in docs/points.md.
 import { BODYWEIGHT_TABLES, LIFT_TABLES, REPS_TABLES, tableAt, type Row } from './strengthLevelTables.js';
-import { BODY_LB, pointsPerRepAt, type WeightMode } from './exercises.js';
+import { BODY_LB, type WeightMode } from './exercises.js';
 
 /** Strength Level's share of 1RM that `r` reps to failure represent: Brzycki below 8, Epley above 10, blended between. */
 export function repsToFraction(r: number): number {
@@ -163,14 +163,21 @@ export function catalogPricing(key: string): PricingSpec | null {
 /** Price per rep at a logged weight (null = none logged), for one body weight. */
 export type Curve = (weight: number | null) => number;
 
+/** A table by name; own keys only, so "constructor" or "toString" are not tables. */
+function tableNamed(tables: Record<string, Row[]>, name: string | undefined): Row[] | undefined {
+  return name !== undefined && Object.hasOwn(tables, name) ? tables[name] : undefined;
+}
+
 // True when a body weight differs from the reference.
 const offReference = (bodyLb: number): boolean => Math.abs(bodyLb - SCORING.BODY_LB) > 1e-9;
 
 // A flat price p is the price at 150 lb. At another body weight it scales by the person's implied price (mean of
 // 120 / Novice reps and 240 / Intermediate reps from their row) over the 150 lb implied price.
 function flatFactor(table: string | undefined, bodyLb: number): number {
-  const rows = table ? REPS_TABLES[table] : undefined;
-  if (!rows || !offReference(bodyLb)) return 1;
+  if (table === undefined) return 1;
+  const rows = tableNamed(REPS_TABLES, table);
+  if (!rows) throw new Error(`pricing names a reps table "${table}" that does not exist`);
+  if (!offReference(bodyLb)) return 1;
   const at = tableAt(rows, bodyLb);
   const ref = tableAt(rows, SCORING.BODY_LB);
   return impliedFlatPrice(at[1], at[2]) / impliedFlatPrice(ref[1], ref[2]);
@@ -178,8 +185,10 @@ function flatFactor(table: string | undefined, bodyLb: number): number {
 
 // Each anchor moved by the table row at bodyLb over its row at 150 lb.
 function anchorsAt(anchors: readonly number[], table: string | undefined, tables: Record<string, Row[]>, bodyLb: number): number[] {
-  const rows = table ? tables[table] : undefined;
-  if (!rows || !offReference(bodyLb)) return [...anchors];
+  if (table === undefined) return [...anchors];
+  const rows = tableNamed(tables, table);
+  if (!rows) throw new Error(`pricing names a table "${table}" that does not exist`);
+  if (!offReference(bodyLb)) return [...anchors];
   const at = tableAt(rows, bodyLb);
   const ref = tableAt(rows, SCORING.BODY_LB);
   return anchors.map((x, i) => (x * at[i]!) / ref[i]!);
@@ -209,7 +218,7 @@ export function liftCurve(oneRM: readonly number[], table?: string, bodyLb: numb
 
 /** Bodyweight curve: load = k x body weight + added load, scaled so a no-load rep pays p; assisted subtracts the assistance (none logged = 0). */
 export function bodyweightCurve(spec: BodyweightSpec, bodyLb: number = SCORING.BODY_LB): Curve {
-  const b = spec.table && BODYWEIGHT_TABLES[spec.table] ? bodyLb : SCORING.BODY_LB;
+  const b = spec.table !== undefined ? bodyLb : SCORING.BODY_LB;
   const offset = spec.k * b;
   let oneRM: number[];
   if (spec.oneRM) {
@@ -225,10 +234,8 @@ export function bodyweightCurve(spec: BodyweightSpec, bodyLb: number = SCORING.B
   return (w) => scale * price(offset + Math.max(w ?? 0, 0));
 }
 
-/** Fallback for a row with no pricing record: base x effective weight / reference weight. */
-export function legacyCurve(base: number, ref: number | null, mode: WeightMode): Curve {
-  return (w) => pointsPerRepAt(base, ref, mode, w);
-}
+/** What an exercise with no usable pricing record pays: nothing. Pending exercises are the intended case; any other is reported (see curveForRow). */
+export const unpricedCurve: Curve = () => 0;
 
 export function buildCurve(spec: PricingSpec, bodyLb: number = SCORING.BODY_LB): Curve {
   switch (spec.kind) {
@@ -247,19 +254,64 @@ export function entryPoints(curve: Curve, reps: number, weight: number | null): 
   return reps * curve(weight);
 }
 
-export function pricingValid(spec: unknown): spec is PricingSpec {
-  if (typeof spec !== 'object' || spec === null) return false;
+// Upper bounds that catch a typo (a price of 5000 or a k of 50), not a judgement; run pays 521 a mile.
+const MAX_PRICE = 1000;
+const MAX_K = 2;
+
+/** Why a pricing record is unusable, or null when it is well formed. Structural: every stored record must pass this. */
+export function pricingProblem(spec: unknown): string | null {
+  if (typeof spec !== 'object' || spec === null) return 'a pricing record is an object';
   const s = spec as Record<string, unknown>;
-  const nums = (a: unknown, n: number): boolean =>
-    Array.isArray(a) && a.length === n && a.every((x) => typeof x === 'number' && Number.isFinite(x) && x > 0);
-  const price = (p: unknown): boolean => typeof p === 'number' && Number.isFinite(p) && p >= 0;
-  const table = s.table === undefined || typeof s.table === 'string';
-  if (s.kind === 'flat') return price(s.p) && table;
-  if (s.kind === 'lift') return nums(s.oneRM, 4) && table;
-  if (s.kind === 'bw') {
-    return price(s.p) && typeof s.k === 'number' && s.k > 0 && (nums(s.oneRM, 4) || nums(s.reps, 4)) && table;
+  const price = (p: unknown): boolean => typeof p === 'number' && Number.isFinite(p) && p >= 0 && p <= MAX_PRICE;
+  // Anchors are Beginner / Novice / Intermediate / Advanced, so each is larger than the one before.
+  const anchors = (a: unknown): boolean =>
+    Array.isArray(a) &&
+    a.length === 4 &&
+    a.every((x) => typeof x === 'number' && Number.isFinite(x) && x > 0) &&
+    a.every((x, i) => i === 0 || x > (a as number[])[i - 1]!);
+  if (s.kind !== 'flat' && s.kind !== 'lift' && s.kind !== 'bw') return 'kind is flat, lift or bw';
+  const tables = s.kind === 'lift' ? LIFT_TABLES : s.kind === 'bw' ? BODYWEIGHT_TABLES : REPS_TABLES;
+  if (s.table !== undefined && (typeof s.table !== 'string' || !tableNamed(tables, s.table))) {
+    return `"${String(s.table)}" is not a table in src/strengthLevelTables.ts for a ${s.kind} price`;
   }
-  return false;
+  if (s.kind === 'flat') return price(s.p) ? null : `a flat price is a number from 0 to ${MAX_PRICE}`;
+  if (s.kind === 'lift') return anchors(s.oneRM) ? null : 'a lift needs four increasing positive 1RMs (Beginner, Novice, Intermediate, Advanced)';
+  if (!price(s.p)) return `a bodyweight price is a number from 0 to ${MAX_PRICE}`;
+  if (typeof s.k !== 'number' || !(s.k > 0 && s.k <= MAX_K)) return `k is the share of body weight counted as load: above 0 and at most ${MAX_K}`;
+  if ((s.reps !== undefined) === (s.oneRM !== undefined)) return 'a bodyweight curve needs exactly one of reps or oneRM';
+  if (!anchors(s.reps ?? s.oneRM)) return 'reps / oneRM are four increasing positive numbers (Beginner, Novice, Intermediate, Advanced)';
+  if (s.assist !== undefined && typeof s.assist !== 'boolean') return 'assist is true or false';
+  return null;
+}
+
+export function pricingValid(spec: unknown): spec is PricingSpec {
+  return pricingProblem(spec) === null;
+}
+
+/**
+ * Why a record may not be written for a newly priced exercise, or null. Beyond being well formed it must follow body weight:
+ * every priced exercise names its by-bodyweight table so nobody is scored by a 150 lb row they do not belong to.
+ * Only a flat 0 (tracked, no points) has nothing to scale. Every write of a pricing record goes through this.
+ */
+export function approvalProblem(spec: unknown): string | null {
+  const problem = pricingProblem(spec);
+  if (problem) return problem;
+  const s = spec as PricingSpec;
+  if (s.table === undefined && !(s.kind === 'flat' && s.p === 0)) {
+    return 'a priced exercise needs its by-bodyweight table: add the rows to src/strengthLevelTables.ts, deploy, then price it with that table (only a flat 0 may go without)';
+  }
+  return null;
+}
+
+/** The code's own catalog must be well formed and follow body weight; a bad entry stops the bot at boot, not at scoring time. */
+export function assertCatalog(): void {
+  const keys = new Set([...Object.keys(BODYWEIGHT), ...Object.keys(LIFT_1RM), ...Object.keys(FLAT)]);
+  for (const key of keys) {
+    const spec = catalogPricing(key)!;
+    // A distance price (per mile or yard) has no body-weight table.
+    const problem = spec.kind === 'flat' && spec.unit ? pricingProblem(spec) : approvalProblem(spec);
+    if (problem) throw new Error(`catalog pricing for "${key}": ${problem}`);
+  }
 }
 
 /** Parses a stored record; null for empty or unusable text (the caller falls back and warns). */
@@ -276,24 +328,21 @@ export function parsePricing(text: string | null): PricingSpec | null {
 export interface PricingRow {
   key?: string;
   pricing: string | null;
-  points_per_rep: number;
-  ref_weight: number | null;
-  weight_mode: WeightMode;
+  pending?: boolean;
 }
 
-/** The curve for a row at a body weight: its pricing record, else the price x weight fallback. */
+const reported = new Set<string>();
+
+/** The curve for a row at a body weight: its pricing record. No usable record pays 0, and says so once unless the exercise is pending. */
 export function curveForRow(row: PricingRow, bodyLb: number = SCORING.BODY_LB): Curve {
-  if (row.pricing) {
-    const spec = parsePricing(row.pricing);
-    if (spec) return buildCurve(spec, bodyLb);
-    console.error(`scoring: exercise ${row.key ?? '?'} has an unusable pricing record; scoring it from its price and reference weight columns`);
+  const spec = parsePricing(row.pricing);
+  if (spec) return buildCurve(spec, bodyLb);
+  const id = row.key ?? '?';
+  if (!row.pending && !reported.has(id)) {
+    reported.add(id);
+    console.error(`scoring: exercise ${id} has ${row.pricing ? 'an unusable' : 'no'} pricing record and scores 0`);
   }
-  return legacyCurve(row.points_per_rep, row.ref_weight, row.weight_mode);
-}
-
-/** The price per rep at a weight for a row, e.g. for a reply. Same code as the SQL function. */
-export function pricePerRep(row: PricingRow, weight: number | null, bodyLb: number = SCORING.BODY_LB): number {
-  return curveForRow(row, bodyLb)(weight);
+  return unpricedCurve;
 }
 
 /** The record stored for an approved exercise, plus the columns that tell the slash command what to ask for. */

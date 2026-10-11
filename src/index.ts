@@ -2,6 +2,7 @@ import { Client, Events, GatewayIntentBits, MessageFlags } from 'discord.js';
 import { assertDiscordConfig, config, warnIfRecapTimeIsBeforeCutoff } from './config.js';
 import { buildCommands, type CommandDef } from './commands/index.js';
 import { db } from './db/index.js';
+import { freezeClosedSeasons } from './db/queries.js';
 import { registerCommands } from './register.js';
 import { closeBrowser } from './render/browser.js';
 import { startRecapScheduler } from './recap.js';
@@ -14,6 +15,8 @@ db(); // opens the file and applies the schema before the first interaction land
 // Slash commands need only Guilds; the message intents (MessageContent is privileged) are for messages.ts.
 const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent],
+  // Names and notes are typed by players: nothing the bot posts may ping anyone because of what they typed.
+  allowedMentions: { parse: [] },
 });
 
 const commands: Map<string, CommandDef> = buildCommands();
@@ -25,6 +28,13 @@ client.once(Events.ClientReady, async (ready) => {
     console.log(`[commands] registered ${count}`);
   } catch (err) {
     console.error('[commands] registration failed:', err);
+  }
+  // A season that closed while the bot was down (a deploy after 04:05) is frozen now, not at the next scheduled run.
+  try {
+    const frozen = freezeClosedSeasons(config.guildId);
+    if (frozen.length > 0) console.log(`[season] froze ${frozen.join(', ')}`);
+  } catch (err) {
+    console.error('[season] freeze failed:', err);
   }
   startRecapScheduler(client, config.guildId);
   await startMessageCapture(client);

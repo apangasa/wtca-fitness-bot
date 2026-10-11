@@ -13,7 +13,8 @@ cd "$(dirname "$0")/.."
 
 echo "==> packing source"
 tar --exclude=node_modules --exclude=dist --exclude=out --exclude=.git \
-    --exclude='*.db' --exclude=.env \
+    --exclude='*.db' --exclude='*.db-wal' --exclude='*.db-shm' --exclude='*.db-journal' --exclude=.env \
+    --exclude=tools --exclude=.claude \
     -czf /tmp/wtca-src.tar.gz .
 
 echo "==> uploading to $REMOTE"

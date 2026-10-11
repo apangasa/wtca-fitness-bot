@@ -3,8 +3,18 @@ import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { config } from '../config.js';
 import { SEED_EXERCISES } from '../exercises.js';
-import { SCORING, catalogPricing, curveForRow, entryPoints, pricingColumns, type Curve, type PricingRow } from '../scoring.js';
-import { SCHEMA } from './schema.js';
+import {
+  SCORING,
+  assertCatalog,
+  catalogPricing,
+  curveForRow,
+  entryPoints,
+  parsePricing,
+  pricingColumns,
+  type Curve,
+  type PricingRow,
+} from '../scoring.js';
+import { GUARDS, SCHEMA } from './schema.js';
 
 let handle: Database.Database | null = null;
 
@@ -14,14 +24,24 @@ export function db(): Database.Database {
     return handle;
   }
 
+  assertCatalog(); // the code's own prices must be well formed before anything is read or written
   mkdirSync(dirname(config.dbPath), { recursive: true });
   handle = new Database(config.dbPath);
   handle.exec(SCHEMA);
   migrate(handle);
+  handle.exec(GUARDS);
   seedExercises(handle);
   migrateAfterSeed(handle);
   registerScoring(handle);
+  warnUnpriced(handle);
   return handle;
+}
+
+// A live exercise with no usable pricing record scores 0 (scoring.ts curveForRow); say so at boot, where it is noticed.
+function warnUnpriced(conn: Database.Database): void {
+  const rows = conn.prepare('SELECT key, pricing FROM exercises WHERE active = 1 AND pending = 0').all() as { key: string; pricing: string | null }[];
+  const bad = rows.filter((r) => !parsePricing(r.pricing)).map((r) => r.key);
+  if (bad.length > 0) console.error(`scoring: these exercises have no usable pricing record and score 0: ${bad.join(', ')}`);
 }
 
 // better-sqlite3 cannot query inside a user function, so exercise rows and body weights are cached and reloaded in db() when stale.
@@ -51,13 +71,13 @@ function refreshScoring(conn: Database.Database): void {
   const version = conn.pragma('data_version', { simple: true }) as number;
   if (version === seenDataVersion) return;
   const rows = conn
-    .prepare('SELECT key, pricing, points_per_rep, ref_weight, weight_mode FROM exercises')
-    .all() as (PricingRow & { key: string })[];
+    .prepare('SELECT key, pricing, pending FROM exercises')
+    .all() as { key: string; pricing: string | null; pending: number }[];
   const weights = conn.prepare('SELECT user_id, weight_lb FROM user_weight').all() as { user_id: string; weight_lb: number }[];
   exerciseRows.clear();
   bodyWeights.clear();
   curves.clear();
-  for (const row of rows) exerciseRows.set(row.key, row);
+  for (const row of rows) exerciseRows.set(row.key, { key: row.key, pricing: row.pricing, pending: row.pending === 1 });
   for (const w of weights) bodyWeights.set(w.user_id, w.weight_lb);
   seenDataVersion = version;
 }
@@ -104,6 +124,9 @@ function migrate(conn: Database.Database): void {
     if (!exCols.some((c) => c.name === name)) conn.exec(`ALTER TABLE exercises ADD COLUMN ${name} ${ddl}`);
   }
 
+  // One-shot data changes tracked by user_version; versions 1-3 predate pricing records and stay so older databases step through.
+  const version = conn.pragma('user_version', { simple: true }) as number;
+
   const msgCols = conn.prepare('PRAGMA table_info(channel_messages)').all() as { name: string }[];
   if (!msgCols.some((c) => c.name === 'channel_name')) conn.exec('ALTER TABLE channel_messages ADD COLUMN channel_name TEXT');
 
@@ -122,14 +145,14 @@ function migrate(conn: Database.Database): void {
     conn.prepare('DELETE FROM exercises WHERE key = ?').run(from);
   });
   const hasKey = (k: string): boolean => conn.prepare('SELECT 1 FROM exercises WHERE key = ?').get(k) !== undefined;
-  if (hasKey('leg-press') && !hasKey('legpress')) {
+  // The renames below, and the leg press repoint after them, are migration 10's (they run before the seed, which would otherwise insert the new keys first).
+  const oldDatabase = version < 10;
+  if (oldDatabase && hasKey('leg-press') && !hasKey('legpress')) {
     renameKey('leg-press', 'legpress');
     // Old leg press entries have no weight and a lift with no weight scores 0: record them at 150 lb (runs once, with the rename).
     conn.prepare('UPDATE entries SET weight = 150 WHERE exercise_key = ? AND weight IS NULL').run('legpress');
   }
 
-  // One-shot data changes tracked by user_version; versions 1-3 predate pricing records and stay so older databases step through.
-  const version = conn.pragma('user_version', { simple: true }) as number;
   if (version < 1) {
     conn.prepare("UPDATE exercises SET points_per_rep = 200 WHERE key = 'run' AND points_per_rep = 0").run();
     conn.pragma('user_version = 1');
@@ -143,12 +166,12 @@ function migrate(conn: Database.Database): void {
     conn.pragma('user_version = 3');
   }
 
-  if (hasKey('abcrunch') && !hasKey('cablecrunch')) {
+  if (oldDatabase && hasKey('abcrunch') && !hasKey('cablecrunch')) {
     renameKey('abcrunch', 'cablecrunch');
     conn.prepare('UPDATE exercises SET label = ? WHERE key = ?').run('Cable Crunch', 'cablecrunch');
   }
   // Leg curl split into seated and lying. Every entry logged so far was priced from the seated table, so they move to seated.
-  if (hasKey('legcurl') && !hasKey('seatedlegcurl')) {
+  if (oldDatabase && hasKey('legcurl') && !hasKey('seatedlegcurl')) {
     renameKey('legcurl', 'seatedlegcurl');
     conn.prepare('UPDATE exercises SET label = ? WHERE key = ?').run('Seated Leg Curl', 'seatedlegcurl');
     // Keep the live pricing record (it may have been tuned); only its table name changes.
@@ -158,31 +181,16 @@ function migrate(conn: Database.Database): void {
   }
 
   // Leg press is priced from the Strength Level horizontal leg press table (was the sled table). Repoints the 150 lb anchors only while they are still the old ones.
-  conn
-    .prepare(`UPDATE exercises SET pricing = REPLACE(pricing, '"oneRM":[190,297,433,596]', '"oneRM":[139,226,340,478]') WHERE key = ?`)
-    .run('legpress');
+  if (oldDatabase) {
+    conn
+      .prepare(`UPDATE exercises SET pricing = REPLACE(pricing, '"oneRM":[190,297,433,596]', '"oneRM":[139,226,340,478]') WHERE key = ?`)
+      .run('legpress');
+  }
 
   // After the renames so a renamed key is priced too.
   if (version < 4) {
-    // Migration 4: a pricing record for every catalog exercise (skips pending rows and distances in another unit).
-    const rows = conn.prepare('SELECT key, unit FROM exercises WHERE pending = 0 AND pricing IS NULL').all() as {
-      key: string;
-      unit: string;
-    }[];
-    const setShown = conn.prepare('UPDATE exercises SET pricing = ?, points_per_rep = ? WHERE key = ?');
-    conn.transaction(() => {
-      for (const row of rows) {
-        const spec = catalogPricing(row.key);
-        if (!spec) continue;
-        if (spec.kind === 'flat' && spec.unit && spec.unit !== row.unit) {
-          console.error(`migration 4: ${row.key} is counted in ${row.unit}, not ${spec.unit}; left without a pricing record`);
-          continue;
-        }
-        const cols = pricingColumns(spec);
-        // points_per_rep is derived from the record.
-        setShown.run(cols.json, cols.display, row.key);
-      }
-    })();
+    // Migration 4: a pricing record for every catalog exercise.
+    backfillCatalogPricing(conn);
     conn.pragma('user_version = 4');
     invalidateScoring();
   }
@@ -207,6 +215,28 @@ function migrate(conn: Database.Database): void {
   }
 }
 
+// A pricing record for every catalog exercise that has none (skips pending rows and distances in another unit).
+function backfillCatalogPricing(conn: Database.Database): void {
+  const rows = conn.prepare('SELECT key, unit FROM exercises WHERE pending = 0 AND pricing IS NULL').all() as {
+    key: string;
+    unit: string;
+  }[];
+  const setShown = conn.prepare('UPDATE exercises SET pricing = ?, points_per_rep = ? WHERE key = ?');
+  conn.transaction(() => {
+    for (const row of rows) {
+      const spec = catalogPricing(row.key);
+      if (!spec) continue;
+      if (spec.kind === 'flat' && spec.unit && spec.unit !== row.unit) {
+        console.error(`migration: ${row.key} is counted in ${row.unit}, not ${spec.unit}; left without a pricing record`);
+        continue;
+      }
+      const cols = pricingColumns(spec);
+      // points_per_rep is derived from the record.
+      setShown.run(cols.json, cols.display, row.key);
+    }
+  })();
+}
+
 // One-shot data changes that need a seeded row, so they run after seedExercises; they continue migrate()'s user_version sequence.
 function migrateAfterSeed(conn: Database.Database): void {
   const version = conn.pragma('user_version', { simple: true }) as number;
@@ -216,11 +246,11 @@ function migrateAfterSeed(conn: Database.Database): void {
   }
   if (version < 7) {
     // Migration 7: the machine lat pulldown was seeded on the plain lat pulldown anchors; it now uses them doubled. Seeds never overwrite, so move the live record (only while it still has the old anchors).
-    const spec = catalogPricing('machinelatpulldown')!;
-    const cols = pricingColumns(spec);
+    // The values are fixed here, not read from the catalog, so replaying it later cannot write a price chosen after it.
+    const doubled = pricingColumns({ kind: 'lift', oneRM: [178, 248, 332, 430], table: 'machinelatpulldown' });
     conn
       .prepare('UPDATE exercises SET pricing = ?, points_per_rep = ?, ref_weight = ? WHERE key = ? AND pricing = ?')
-      .run(cols.json, cols.display, cols.ref, 'machinelatpulldown', JSON.stringify({ kind: 'lift', oneRM: [89, 124, 166, 215], table: 'machinelatpulldown' }));
+      .run(doubled.json, doubled.display, doubled.ref, 'machinelatpulldown', JSON.stringify({ kind: 'lift', oneRM: [89, 124, 166, 215], table: 'machinelatpulldown' }));
     conn.pragma('user_version = 7');
     invalidateScoring();
   }
@@ -230,50 +260,50 @@ function migrateAfterSeed(conn: Database.Database): void {
   }
   if (version < 9) {
     // Migration 9: the machine lat pulldown anchors go from doubled to x1.5 (only while the live record still has the doubled ones).
-    const cols = pricingColumns(catalogPricing('machinelatpulldown')!);
+    const x15 = pricingColumns({ kind: 'lift', oneRM: [133.5, 186, 249, 322.5], table: 'machinelatpulldown' });
     conn
       .prepare('UPDATE exercises SET pricing = ?, points_per_rep = ?, ref_weight = ? WHERE key = ? AND pricing = ?')
-      .run(cols.json, cols.display, cols.ref, 'machinelatpulldown', JSON.stringify({ kind: 'lift', oneRM: [178, 248, 332, 430], table: 'machinelatpulldown' }));
+      .run(x15.json, x15.display, x15.ref, 'machinelatpulldown', JSON.stringify({ kind: 'lift', oneRM: [178, 248, 332, 430], table: 'machinelatpulldown' }));
     conn.pragma('user_version = 9');
+    invalidateScoring();
+  }
+  if (version < 10) {
+    // Migration 10: the renames and the leg press repoint that used to run on every boot are now behind this version (migrate() runs
+    // them first, before the seed). Exercises that have a weight rule in the seed but no reference weight yet get it, once; the seed
+    // sets it on insert from now on and never touches an existing row. Last, a pricing record for any catalog exercise still without one.
+    const weighted = conn.prepare('UPDATE exercises SET ref_weight = ?, weight_mode = ?, weight_note = ? WHERE key = ? AND ref_weight IS NULL');
+    for (const ex of SEED_EXERCISES) {
+      const spec = ex.weightNote !== undefined ? catalogPricing(ex.key) : null;
+      if (spec && spec.kind !== 'flat') {
+        const cols = pricingColumns(spec);
+        weighted.run(cols.ref, cols.mode, ex.weightNote ?? null, ex.key);
+      }
+    }
+    backfillCatalogPricing(conn);
+    conn.pragma('user_version = 10');
     invalidateScoring();
   }
 }
 
 function seedExercises(conn: Database.Database): void {
-  // Existing rows are never overwritten.
+  // Existing rows are never overwritten: only a key that is missing is inserted, with its weight rule and price.
   const exists = conn.prepare('SELECT 1 FROM exercises WHERE key = ?');
   const nextOrder = conn.prepare('SELECT COALESCE(MAX(sort_order) + 1, 0) AS n FROM exercises');
   const insert = conn.prepare(
-    `INSERT INTO exercises (key, label, unit, sort_order, active, points_per_rep, pricing)
-     VALUES (?, ?, ?, ?, 1, ?, ?)`,
-  );
-  // One-shot per exercise, while ref_weight is NULL.
-  const makeWeighted = conn.prepare(
-    `UPDATE exercises SET ref_weight = ?, weight_mode = ?, weight_note = ?
-     WHERE key = ? AND ref_weight IS NULL`,
+    `INSERT INTO exercises (key, label, unit, sort_order, active, points_per_rep, ref_weight, weight_mode, weight_note, pricing)
+     VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, ?)`,
   );
   const seed = conn.transaction(() => {
     for (const ex of SEED_EXERCISES) {
-      if (!exists.get(ex.key)) {
-        const { n } = nextOrder.get() as { n: number };
-        const spec = catalogPricing(ex.key);
-        const cols = spec ? pricingColumns(spec) : null;
-        // points_per_rep, ref_weight and weight_mode derive from the pricing record.
-        insert.run(ex.key, ex.label, ex.unit, n, cols?.display ?? 0, cols?.json ?? null);
-      }
-      const weighted = ex.weightNote !== undefined ? catalogPricing(ex.key) : null;
-      if (weighted && weighted.kind !== 'flat') {
-        const cols = pricingColumns(weighted);
-        makeWeighted.run(cols.ref, cols.mode, ex.weightNote ?? null, ex.key);
-      }
+      if (exists.get(ex.key)) continue;
+      const { n } = nextOrder.get() as { n: number };
+      const spec = catalogPricing(ex.key);
+      const cols = spec ? pricingColumns(spec) : null;
+      // points_per_rep, ref_weight and weight_mode derive from the pricing record; a flat price or an unweighted exercise takes no weight.
+      const weighted = ex.weightNote !== undefined && cols !== null && spec!.kind !== 'flat';
+      insert.run(ex.key, ex.label, ex.unit, n, cols?.display ?? 0, weighted ? cols.ref : null, weighted ? cols.mode : 'load', weighted ? ex.weightNote : null, cols?.json ?? null);
     }
   });
   seed();
   invalidateScoring();
-}
-
-/** Clean slate for the preview scripts. */
-export function resetForTesting(): void {
-  const conn = db();
-  conn.exec('DELETE FROM entries; DELETE FROM users; DELETE FROM guild_config;');
 }

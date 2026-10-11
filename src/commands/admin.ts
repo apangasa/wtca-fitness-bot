@@ -6,13 +6,7 @@ import {
 } from 'discord.js';
 import { maybeAnnounceClosedSeasons, maybePostRecap } from '../recap.js';
 import { dayKeyFor, formatDayKeyShort } from '../time.js';
-import type { CommandDef } from './types.js';
-
-async function guildOnly(interaction: ChatInputCommandInteraction): Promise<string | null> {
-  if (interaction.guildId) return interaction.guildId;
-  await interaction.reply({ content: 'Run this in the server, not a DM.', flags: MessageFlags.Ephemeral });
-  return null;
-}
+import { guildOnly, type CommandDef } from './types.js';
 
 // Channels with a /cleanup running; concurrent runs race to delete the same messages.
 const cleanupInFlight = new Set<string>();

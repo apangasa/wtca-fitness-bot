@@ -63,7 +63,7 @@ if (reopen) {
   check('reopen: a curve tuned in the database survives a restart', JSON.stringify(bench.pricing) === JSON.stringify({ kind: 'lift', oneRM: [100, 140, 190, 240] }), JSON.stringify(bench.pricing));
   check('reopen: a hand-set run price is not put back to 521 by the migration', q.getExercise('run')!.pricing?.kind === 'flat' && (q.getExercise('run')!.pricing as { p: number }).p === 777);
   check('reopen: burpees tuned to 11 are not repriced again', (q.getExercise('burpees')!.pricing as { p: number }).p === 11);
-  check('reopen: the migration did not run again (user_version 9, an emptied record stays empty)', userVersion() === 9 && q.getExercise('abrolls')!.pricing === null);
+  check('reopen: the migration did not run again (user_version 10, an unusable record is not repaired behind your back)', userVersion() === 10 && q.getExercise('abrolls')!.pricing === null);
   const machineRe = q.getExercise('machinelatpulldown')!;
   check('reopen: migration 9 moved the live-style machine lat pulldown record from the doubled to the x1.5 anchors (and its reference weight)', machineRe.pricing?.kind === 'lift' && machineRe.pricing.oneRM.join() === '133.5,186,249,322.5' && machineRe.refWeight !== null && near(machineRe.refWeight, (29 / 36) * 186, 1e-9), JSON.stringify(machineRe));
   check('reopen: nothing was duplicated', q.listExercises().filter((e) => e.key === 'benchpress').length === 1);
@@ -100,7 +100,7 @@ check('its history moved with it', cableMoved?.exerciseKey === 'cablecrunch' && 
 const lunges = q.getExercise('lunges')!;
 check('lunges, hand-made at 3, become weighted and take the flat price 7.4436 (unrounded)', lunges.refWeight === 150 && lunges.weightMode === 'add' && lunges.pricing?.kind === 'bw' && near(lunges.pricing.p, implied(14, 38)), JSON.stringify(lunges));
 const wallsit = q.getExercise('wallsit')!;
-check('a hand-made exercise that is not in the catalog is left alone (no record, legacy 5)', wallsit.refWeight === null && wallsit.pointsPerRep === 5 && wallsit.pricing === null);
+check('a hand-made exercise that is not in the catalog is left alone (no record, display price 5)', wallsit.refWeight === null && wallsit.pointsPerRep === 5 && wallsit.pricing === null);
 const bwKinds = ['pullups', 'chinups', 'pushups', 'situps', 'calfraises'] as const;
 check('pull-ups, chin-ups, push-ups, sit-ups and calf-raises carry bodyweight curves', bwKinds.every((k) => q.getExercise(k)!.pricing?.kind === 'bw'));
 const burpees = q.getExercise('burpees')!;
@@ -116,7 +116,7 @@ check('50 old squats score 50 x 4.3767 (unrounded)', riley !== undefined && near
 check('30 old lunges reprice with the row: 30 x 7.4436', near(q.dayTotals(GUILD, '2026-09-20')[0]!.points, 30 * implied(14, 38)));
 check('old leg press entry was backfilled as 150 lb and scores the leg press curve at 150 lb', near(q.dayTotals(GUILD, '2026-09-24')[0]!.points, 40 * model('legpress', 150)));
 check('the backfill touched only the leg press', q.dayTotals(GUILD, '2026-09-20')[0]!.exerciseKey === 'lunges');
-check('a record-less exercise still scores by its legacy price (10 wall sits x 5 = 50)', near(q.dayTotals(GUILD, '2026-09-11')[0]!.points, 50));
+check('a record-less live exercise scores 0, not by a price from the old columns (10 wall sits)', near(q.dayTotals(GUILD, '2026-09-11')[0]!.points, 0));
 
 const runEx = q.getExercise('run')!;
 check('run now pays 521.14 a mile (180 / 3.5 x 10:08)', runEx.pricing?.kind === 'flat' && near(runEx.pricing.p, RUN) && runEx.unit === 'mi', JSON.stringify(runEx));
@@ -124,7 +124,7 @@ const oldRun = q.dayTotals(GUILD, '2026-09-12').find((t) => t.exerciseKey === 'r
 check('the 3-mile run logged before was backfilled to 3 x 521.14', !!oldRun && near(oldRun.points, 3 * RUN), String(oldRun?.points));
 const swimEx = q.getExercise('swim');
 check('swim exists at 1.0286 per yard', swimEx?.pricing?.kind === 'flat' && near(swimEx.pricing.p, SWIM) && swimEx.unit === 'yd', JSON.stringify(swimEx));
-check('the one-shot upgrades are recorded (user_version 9)', userVersion() === 9);
+check('the one-shot upgrades are recorded (user_version 10)', userVersion() === 10);
 const machineLat = q.getExercise('machinelatpulldown')!;
 check('machine lat pulldown is seeded as a lift on the lat pulldown anchors x1.5 and its own table', machineLat.label === 'Machine Lat Pulldown' && machineLat.pricing?.kind === 'lift' && machineLat.pricing.table === 'machinelatpulldown' && machineLat.pricing.oneRM.join() === '133.5,186,249,322.5' && machineLat.refWeight !== null, JSON.stringify(machineLat));
 check('a stack setting of 1.5w on the machine lat pulldown pays what w pays on the plain lat pulldown, at 150 lb and at 220 lb', [150, 220].every((bw) => [50, 72.5, 90, 100].every((w) => near(buildCurve(catalogPricing('machinelatpulldown')!, bw)(1.5 * w), buildCurve(catalogPricing('latpulldown')!, bw)(w), 1e-9))));
@@ -363,10 +363,10 @@ await run('new', { user: 'u-b', strings: { name: 'cable row' }, integers: { reps
 
 // Approve prices the row; entries already logged are scored with no extra step.
 const rowAnchors = [86, 123, 168, 220];
-const approved = q.approveExercise('cablerow', { label: 'Cable Row', pricing: { kind: 'lift', oneRM: rowAnchors }, note: 'stack setting' });
+const approved = q.approveExercise('cablerow', { label: 'Cable Row', pricing: { kind: 'lift', oneRM: rowAnchors, table: 'row' }, note: 'stack setting' });
 check('approving clears pending and applies the final label and note', !!approved && !approved.pending && approved.label === 'Cable Row' && approved.weightNote === 'stack setting');
 check('and it is a weighted lift that needs a weight, with a lift record', !!approved && approved.pricing?.kind === 'lift' && approved.refWeight !== null && approved.weightMode === 'load', JSON.stringify(approved));
-const rowCurve = buildCurve({ kind: 'lift', oneRM: rowAnchors });
+const rowCurve = buildCurve({ kind: 'lift', oneRM: rowAnchors, table: 'row' });
 const priced = totalsFor('cablerow');
 const pa = priced.find((t) => t.userId === 'u-a');
 const pb = priced.find((t) => t.userId === 'u-b');
@@ -374,27 +374,27 @@ check('every entry was backfilled: 12 @ 40 and 20 @ 50 on the new lift curve', !
 check('it now has its own command', buildCommands().has('cablerow'));
 r = await run('queue', { user: 'u-a' });
 check('/queue is empty again', r.replies[0]!.includes('Nothing is waiting'), r.replies[0]);
-check('approving twice does nothing', q.approveExercise('cablerow', { label: 'x', pricing: { kind: 'flat', p: 1 } }) === null);
-check('a normal exercise cannot be re-priced through approve', q.approveExercise('benchpress', { label: 'x', pricing: { kind: 'flat', p: 1 } }) === null);
-check('a bad price is rejected', (() => { try { q.approveExercise('cablerow', { label: 'x', pricing: { kind: 'flat', p: -1 } }); return false; } catch { return true; } })());
-check('a lift with the wrong number of anchors is rejected', (() => { try { q.approveExercise('cablerow', { label: 'x', pricing: { kind: 'lift', oneRM: [1, 2, 3] } }); return false; } catch { return true; } })());
+check('approving twice does nothing', q.approveExercise('cablerow', { label: 'x', pricing: { kind: 'flat', p: 1, table: 'abrolls' } }) === null);
+check('a normal exercise cannot be re-priced through approve', q.approveExercise('benchpress', { label: 'x', pricing: { kind: 'flat', p: 1, table: 'abrolls' } }) === null);
+check('a bad price is rejected', (() => { try { q.approveExercise('cablerow', { label: 'x', pricing: { kind: 'flat', p: -1, table: 'abrolls' } }); return false; } catch { return true; } })());
+check('a lift with the wrong number of anchors is rejected', (() => { try { q.approveExercise('cablerow', { label: 'x', pricing: { kind: 'lift', oneRM: [1, 2, 3], table: 'row' } }); return false; } catch { return true; } })());
 
 // Flat approval (no weight asked for) and a bodyweight curve.
 q.createPendingExercise('plankhold', 'Plank hold');
-const flatApproved = q.approveExercise('plankhold', { label: 'Plank hold', pricing: { kind: 'flat', p: 3 } });
+const flatApproved = q.approveExercise('plankhold', { label: 'Plank hold', pricing: { kind: 'flat', p: 3, table: 'abrolls' } });
 check('a flat approval asks for no weight', !!flatApproved && flatApproved.refWeight === null && q.priceAt(flatApproved, null) === 3);
 q.createPendingExercise('ringdips', 'Ring dips');
-const bwApproved = q.approveExercise('ringdips', { label: 'Ring dips', pricing: { kind: 'bw', p: 14, k: 1, reps: [2, 10, 20, 32] } });
+const bwApproved = q.approveExercise('ringdips', { label: 'Ring dips', pricing: { kind: 'bw', p: 14, k: 1, reps: [2, 10, 20, 32], table: 'dips' } });
 check('a bodyweight approval takes optional added load and pays its flat price with none', !!bwApproved && bwApproved.weightMode === 'add' && bwApproved.refWeight === 150 && near(q.priceAt(bwApproved, null), 14) && q.priceAt(bwApproved, 25) > 14);
 q.createPendingExercise('assistedring', 'Assisted ring');
-const asApproved = q.approveExercise('assistedring', { label: 'Assisted ring', pricing: { kind: 'bw', p: 14, k: 1, reps: [2, 10, 20, 32], assist: true } });
+const asApproved = q.approveExercise('assistedring', { label: 'Assisted ring', pricing: { kind: 'bw', p: 14, k: 1, reps: [2, 10, 20, 32], assist: true, table: 'dips' } });
 check('an assisted approval reads the weight as assistance', !!asApproved && asApproved.weightMode === 'assist' && q.priceAt(asApproved, 30) < q.priceAt(asApproved, 10));
 
 // Approving can rename: players type the queued key, so the one the exercise keeps is chosen at approval.
 q.ensureUser('u-rename', 'Rename');
 q.createPendingExercise('zzrename', 'Zz rename');
 q.addEntry(GUILD, 'u-rename', 'zzrename', day, 5, 100);
-const renamed = q.approveExercise('zzrename', { label: 'Renamed Lift', pricing: { kind: 'lift', oneRM: rowAnchors }, newKey: 'renamedlift' });
+const renamed = q.approveExercise('zzrename', { label: 'Renamed Lift', pricing: { kind: 'lift', oneRM: rowAnchors, table: 'row' }, newKey: 'renamedlift' });
 check('approving with a new key prices the exercise under that key and drops the typed one', !!renamed && renamed.key === 'renamedlift' && renamed.label === 'Renamed Lift' && !renamed.pending && q.getExercise('zzrename') === null, JSON.stringify(renamed));
 const renamedTotal = q.dayTotals(GUILD, day).find((t) => t.userId === 'u-rename');
 check('its entries moved with the key and score at the new price', renamedTotal?.exerciseKey === 'renamedlift' && renamedTotal.total === 5 && renamedTotal.points > 0, JSON.stringify(renamedTotal));
@@ -402,9 +402,9 @@ check('the slash command is the new key, not the typed one', buildCommands().has
 q.createPendingExercise('zzclash', 'Zz clash');
 q.addEntry(GUILD, 'u-rename', 'zzclash', day, 3, 50);
 const throws = (fn: () => unknown): boolean => { try { fn(); return false; } catch { return true; } };
-check('a new key that is already taken is refused and nothing moves', throws(() => q.approveExercise('zzclash', { label: 'x', pricing: { kind: 'flat', p: 1 }, newKey: 'benchpress' })) && q.getExercise('zzclash')?.pending === true && q.dayTotals(GUILD, day).some((t) => t.exerciseKey === 'zzclash'));
-check('a new key that cannot be a slash command is refused', throws(() => q.approveExercise('zzclash', { label: 'x', pricing: { kind: 'flat', p: 1 }, newKey: 'Bad Key' })) && q.getExercise('zzclash')?.pending === true);
-check('a new key equal to the typed one is a plain approval', q.approveExercise('zzclash', { label: 'Zz clash', pricing: { kind: 'flat', p: 2 }, newKey: 'zzclash' })?.key === 'zzclash');
+check('a new key that is already taken is refused and nothing moves', throws(() => q.approveExercise('zzclash', { label: 'x', pricing: { kind: 'flat', p: 1, table: 'abrolls' }, newKey: 'benchpress' })) && q.getExercise('zzclash')?.pending === true && q.dayTotals(GUILD, day).some((t) => t.exerciseKey === 'zzclash'));
+check('a new key that cannot be a slash command is refused', throws(() => q.approveExercise('zzclash', { label: 'x', pricing: { kind: 'flat', p: 1, table: 'abrolls' }, newKey: 'Bad Key' })) && q.getExercise('zzclash')?.pending === true);
+check('a new key equal to the typed one is a plain approval', q.approveExercise('zzclash', { label: 'Zz clash', pricing: { kind: 'flat', p: 2, table: 'abrolls' }, newKey: 'zzclash' })?.key === 'zzclash');
 
 // Merge folds a duplicate into the exercise it really was.
 await run('new', { user: 'u-a', strings: { name: 'seated row' }, integers: { reps: 8 }, numbers: { weight: 100 } });
@@ -414,7 +414,7 @@ check('merging moves its entries and removes the pending row', mergedCount === 1
 const rowRow = totalsFor('row').find((t) => t.userId === 'u-a');
 check('and they score at the target price (8 reps @ 100 on row)', !!rowRow && near(rowRow.points, 8 * model('row', 100)), `${rowRow?.points}`);
 q.createPendingExercise('zzone', 'Zz one');
-check('cannot merge into itself, from a normal exercise, or into a pending one', q.mergeExercise('zzone', 'zzone') === null && q.mergeExercise('benchpress', 'row') === null && q.mergeExercise('zzone', 'zzone2') === null);
+check('cannot merge into itself, from a normal exercise, or into a pending one', throws(() => q.mergeExercise('zzone', 'zzone')) && throws(() => q.mergeExercise('benchpress', 'row')) && throws(() => q.mergeExercise('zzone', 'zzone2')));
 
 // The approve script is a separate process: its write must be noticed without a restart.
 {
@@ -559,12 +559,12 @@ const { LIFT_1RM } = S;
 db().prepare(`UPDATE exercises SET pricing = '{"kind":"flat","p":777}' WHERE key = 'run'`).run();
 db().prepare(`UPDATE exercises SET pricing = '{"kind":"lift","oneRM":[100,140,190,240]}' WHERE key = 'benchpress'`).run();
 db().prepare(`UPDATE exercises SET pricing = '{"kind":"flat","p":11}' WHERE key = 'burpees'`).run();
-db().prepare(`UPDATE exercises SET pricing = NULL WHERE key = 'abrolls'`).run();
+db().prepare(`UPDATE exercises SET pricing = '{"kind":"flat","p":5000}' WHERE key = 'abrolls'`).run();
 // A live-style row from before migration 9 (doubled anchors, user_version 8): the reopen run must move it to the x1.5 anchors.
 db().prepare(`UPDATE exercises SET pricing = '{"kind":"lift","oneRM":[178,248,332,430],"table":"machinelatpulldown"}', ref_weight = 99.9 WHERE key = 'machinelatpulldown'`).run();
 db().pragma('user_version = 8');
 invalidateScoring();
-check('a record emptied by hand falls back to the legacy price (ab-rolls 14.2857, kept as the display value)', near(q.priceAt(q.getExercise('abrolls')!, null), implied(7, 21), 1e-9));
+check('a record broken by hand (a price of 5000) scores 0 instead of falling back to the old columns', q.priceAt(q.getExercise('abrolls')!, null) === 0 && near(q.getExercise('abrolls')!.pointsPerRep, implied(7, 21), 1e-9));
 
 console.log(failures === 0 ? '\nAll weight checks passed.' : `\n${failures} check(s) FAILED.`);
 process.exit(failures ? 1 : 0);

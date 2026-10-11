@@ -4,7 +4,7 @@ import {
   type AutocompleteInteraction,
   type ChatInputCommandInteraction,
 } from 'discord.js';
-import { formatWeight, squashName } from '../exercises.js';
+import { MAX_LOAD_LB, RESERVED_COMMAND_NAMES, formatWeight, squashName } from '../exercises.js';
 import {
   addEntry,
   addPendingNote,
@@ -18,16 +18,7 @@ import {
   MAX_PENDING,
 } from '../db/queries.js';
 import { dayKeyFor, formatDayKeyShort } from '../time.js';
-import { actorName, type CommandDef } from './types.js';
-
-const MAX_LOAD_LB = 2000;
-
-// Command names an exercise cannot take.
-const RESERVED = new Set(['undo', 'today', 'leaderboard', 'race', 'me', 'seasons', 'name', 'recap', 'cleanup', 'new', 'queue', 'weight']);
-
-async function reject(interaction: ChatInputCommandInteraction, content: string): Promise<void> {
-  await interaction.reply({ content, flags: MessageFlags.Ephemeral });
-}
+import { actorName, reject, type CommandDef } from './types.js';
 
 // "Cable row": first letter up, the rest as typed.
 function displayName(raw: string): string {
@@ -93,7 +84,7 @@ const newCommand: CommandDef = {
       await reject(interaction, 'That name has no letters or numbers in it.');
       return;
     }
-    if (RESERVED.has(key)) {
+    if (RESERVED_COMMAND_NAMES.has(key)) {
       await reject(interaction, `\`${raw.trim()}\` is the name of a command, not an exercise. Pick another name.`);
       return;
     }

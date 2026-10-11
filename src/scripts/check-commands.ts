@@ -96,10 +96,15 @@ for (const [name, content, files, expected] of keptCases) {
 }
 
 // A database row becomes a command.
-const { addExercise, removeExercise } = await import('../db/queries.js');
-addExercise('planktest', 'Plank Test', 'min', 1);
+const { db } = await import('../db/index.js');
+const { invalidateScoring } = await import('../db/index.js');
+db()
+  .prepare(`INSERT INTO exercises (key, label, unit, sort_order, active, points_per_rep, pricing) VALUES ('planktest', 'Plank Test', 'min', 999, 1, 0, '{"kind":"flat","p":0}')`)
+  .run();
+invalidateScoring();
 if (!buildCommands().has('planktest')) fail('a new plain exercise row did not produce a /planktest command');
-removeExercise('planktest');
+db().prepare("UPDATE exercises SET active = 0 WHERE key = 'planktest'").run();
+invalidateScoring();
 if (buildCommands().has('planktest')) fail('a retired exercise still has a command');
 
 if (failed) process.exit(1);

@@ -1,7 +1,7 @@
 // Copies the fitness channel's history and its threads into channel_messages (backfill-messages [--since 2026-10-01], default the start of Season 2); safe to re-run.
 import { REST, Routes } from 'discord.js';
 import { DateTime } from 'luxon';
-import { config } from '../config.js';
+import { config, requireGuildId } from '../config.js';
 import { db } from '../db/index.js';
 import { saveMessage } from '../messages.js';
 
@@ -21,11 +21,13 @@ interface RawThread {
   parent_id: string;
 }
 
+requireGuildId();
 const channelId = config.recapChannelId;
 if (!channelId) throw new Error('RECAP_CHANNEL_ID is not set');
 
 const i = process.argv.indexOf('--since');
-const sinceDay = i >= 0 ? process.argv[i + 1]! : '2026-10-01';
+const sinceDay = i >= 0 ? process.argv[i + 1] : '2026-10-01';
+if (sinceDay === undefined || sinceDay.startsWith('--')) throw new Error('--since needs a day, like 2026-10-01');
 const since = DateTime.fromISO(sinceDay, { zone: config.tzName }).startOf('day');
 if (!since.isValid) throw new Error(`bad --since "${sinceDay}"`);
 
