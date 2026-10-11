@@ -67,7 +67,8 @@ function mount(host) {
       body.append(
         el('tr', {}, el('td', { textContent: 'Run' }), el('td', { textContent: `${Math.round(DATA.cardio.run)} per mile` }), el('td')),
         el('tr', {}, el('td', { textContent: 'Swim' }), el('td', { textContent: `${Math.round(DATA.cardio.swim100)} per 100 yd` }), el('td')),
-        el('tr', {}, el('td', { textContent: 'Flight of stairs, ankle alphabet' }), el('td', { textContent: '0 (tracked, no points)' }), el('td')),
+        el('tr', {}, el('td', { textContent: 'Flight of stairs' }), el('td', { textContent: '10 per flight' }), el('td')),
+        el('tr', {}, el('td', { textContent: 'Ankle alphabet' }), el('td', { textContent: '0 (tracked, no points)' }), el('td')),
       );
     }
   }

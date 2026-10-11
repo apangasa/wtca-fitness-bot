@@ -34,14 +34,23 @@ Yards are the unit. Meters are converted at × 1.0936, so the same pool distance
 
 The 2018 U.S. Masters Swimming 1-Hour ePostal Championship (590 men; median 1:35 per 100 yd) describes committed competitive swimmers and is not used as a reference.
 
-## Stairs: cardio, counted in flights (price not set)
+## Stairs: cardio, 10 points per flight
 
 Stairs is cardio, decided 2026-10-11. The effort is sustained aerobic work over time, not resistance, and there are no by-body-weight reps standards to price it against. It is counted in **flights** (the `flights` unit), pays a flat price per flight for everyone like run and swim, and takes no `--table` ([points-weight-class.md](points-weight-class.md)). A loaded or step-up variant with added weight would be a separate strength exercise.
 
-**The price is not set.** Until it is, stairs and the flight of stairs score 0. It follows the principle above, a flight's price being the minutes a flight takes at a reference effort times the lifting rate, and each input needs a source before it is used:
+**The price is 10 points per flight.** The user set it after three routes, each starting from the lifting rate and a flight of about 14 steps (a floor-to-floor flight; 8 ft of rise over a 7 in riser; the step count is an assumption, not a standard), at the 150 lb reference lifter (68 kg):
 
-- **Time per flight at the reference pace.** Needs the steps in a flight and a sourced climbing rate. A 1997 calorimetry study ([energy cost of stair climbing and descending](https://pubmed.ncbi.nlm.nih.gov/9309638/)) used 70 steps a minute, but it does not give the steps per flight.
-- **How to scale effort.** Fast stair climbing is rated about 6.5 METs against about 9.8 for running at 6 mph ([Compendium of Physical Activities](https://pacompendium.com/older-adult-compendium/), read through secondary tables; the primary tables still need checking). Equal time at equal effort needs a stated way to compare efforts, and METs is one candidate.
+| Route | Arithmetic | Points |
+|---|---|---|
+| Energy per step | Bassett et al. 1997 measured 0.15 kcal per step for a 70 kg person (8.6 METs at 70 steps a minute). 14 steps × 0.146 kcal = 2.0 kcal. The run pays 521 per mile, about 109 kcal at 1 kcal per kg per km, so 4.8 points a kcal. | 9.8 |
+| METs × time | 8.8 METs (fast stair climbing, from the Compendium as quoted by a secondary site) × 68 kg × 13 s = 2.2 kcal × 4.8. | 10.4 |
+| Cardio time rate | 13 s per floor (a hospital study of doctors climbing at a walking pace) ÷ 60 × 51.43 points a minute. | 11.1 |
+
+Stairs at 8.8 METs cost nearly as much a minute as the reference run pace (about 9.8 METs), which is why time and energy agree.
+
+- **Limits.** The step count per flight is an assumption (a 10-step home flight pays about 30% less in energy terms). The 13 s is one study. Another secondary table rates fast stair climbing at 6.5 METs, which would put the METs route near 7.7 and the lowest estimate lower; neither Compendium figure was read from its primary table. Slow climbing at 4 METs would pay about half. The price is flat, so effort is not distinguished, and descending is not counted.
+- **Sources.** [Bassett et al. 1997, energy cost of stair climbing](https://pubmed.ncbi.nlm.nih.gov/9309638/); [PLOS ONE 2012, stair climbing at 8.5 to 10.4 kcal a minute](https://pmc.ncbi.nlm.nih.gov/articles/PMC3520986); METs from the [Compendium of Physical Activities](https://pacompendium.com/older-adult-compendium/) and [Omni Calculator](https://omnicalculator.com/sports/stairs-calorie); time per floor from a [hospital stair-use study](https://english.ahram.org.eg/News/29195.aspx), read through a search summary.
+- **Priced 2026-10-11.** The flight of stairs queue entries were moved onto stairs, so all earlier flights score at 10.
 
 ## Figures that follow
 
@@ -51,6 +60,7 @@ Stairs is cardio, decided 2026-10-11. The effort is sustained aerobic work over 
 | 5K run (3.107 mi) | 1,619 |
 | 1,000 yd swim | 1,029 |
 | 1,760 yd swim (a true mile) | 1,810 |
+| 1 flight of stairs | 10 |
 
 ## Guards
 
