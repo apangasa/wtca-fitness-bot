@@ -92,7 +92,7 @@ async function applyLog(
   // Every exercise gets this reply, so points are never mistaken for reps. The price uses the person's own body weight.
   const perUnit = priceAt(ex, stored, bodyWeightOf(user.id));
   const note = stored !== null && ex.weightNote ? ` (${ex.weightNote})` : '';
-  const per = ex.unit === 'reps' ? 'rep' : ex.unit;
+  const per = ex.unit === 'reps' ? 'rep' : ex.unit === 'flights' ? 'flight' : ex.unit;
   const lines = [
     `**${user.displayName}** — ${describeEntry(ex, amount, stored, sets)}${note}: ` +
       `**+${formatPoints(total * perUnit)} pts** (${formatPoints(perUnit)}/${per})`,
