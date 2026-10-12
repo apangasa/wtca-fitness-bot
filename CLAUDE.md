@@ -15,7 +15,7 @@ It is read-only. The `out/*.db` files are throwaway rehearsal copies that go sta
 ## Shipping
 
 - A requested change is deployed once `npm run check` passes. The user has said not to ask first.
-- Follow "Fast deploy" in `deploy/README.md`: backup, compile with `nice`, restart, verify the log. Give a heads-up before a restart when the user may be mid-workout.
+- Follow "Fast deploy" in `deploy/README.md`: backup, compile with `nice`, restart, verify the log.
 - Another session may be editing this repo at the same time. Re-read a file before editing it.
 
 ## Pricing and scoring
