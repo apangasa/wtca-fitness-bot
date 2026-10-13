@@ -751,6 +751,29 @@ export const LIFT_TABLES: Record<string, Row[]> = {
 30/62/108/167
 31/64/110/170
 32/66/112/172`),
+  // Strength Level's hip thrust (men), read 2026-10-12: 1RM.
+  hipthrust: parse(`
+45/102/186/296
+56/119/209/325
+68/136/232/353
+80/153/254/380
+93/170/275/406
+105/186/296/431
+117/202/316/455
+129/218/335/478
+141/233/354/501
+153/248/373/523
+164/263/391/544
+176/277/409/565
+187/291/426/585
+198/305/443/605
+209/319/459/624
+220/333/475/643
+231/346/491/661
+241/359/506/679
+252/371/521/697
+262/384/536/714
+272/396/551/730`),
 };
 // The machine lat pulldown follows body weight on the same Strength Level table as the plain lat pulldown.
 LIFT_TABLES.machinelatpulldown = LIFT_TABLES.latpulldown!;

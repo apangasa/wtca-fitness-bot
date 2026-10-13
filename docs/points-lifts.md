@@ -103,9 +103,11 @@ Bulgarian split squat is two lifts, because Strength Level publishes two 1RM tab
 
 The machine tricep extension (`/machinetricepextensions`) is priced from Strength Level's machine tricep extension table (150 lb row 58 / 96 / 145 / 204), not the tricep extension table, which is a different exercise (barbell or dumbbell, not a seated stack machine). The chest press (`/chestpress`) is priced from Strength Level's chest press table (150 lb row 70 / 114 / 172 / 242). Strength Level has one machine chest press entry and no separate converging or lever one, so a converging chest press is logged there as the closest match; both weights are the stack setting or the plates loaded.
 
-The good morning (`/goodmorning`) is priced from Strength Level's good morning table, a barbell 1RM (men, 150 lb row 47 / 91 / 152 / 230 lb, read 2026-10-12, [source](https://strengthlevel.com/strength-standards/good-morning/lb)), like any other lift. The weight is the total load, bar and plates; the page does not say whether its figures include the bar, which is assumed. Prices per rep at 150 lb: 30 lb 2.3, 45 lb 5.4, 95 lb 21.3, 135 lb 33.5, 185 lb 47.9.
+The good morning (`/goodmorning`) is priced from Strength Level's good morning table (men, 1RM, 150 lb row 47 / 91 / 152 / 230 lb, read 2026-10-12, [source](https://strengthlevel.com/strength-standards/good-morning/lb)).
 
-The cable woodchop (`/woodchops`) is priced from Strength Level's cable woodchopper table, a 1RM (men, 150 lb row 13 / 36 / 73 / 122 lb, read 2026-10-12, [source](https://strengthlevel.com/strength-standards/cable-woodchopper/lb)), like any other lift. The weight is the stack setting. The page does not say whether it counts the stack setting, or whether a rep is one chop or a chop each way; both are assumed. A woodchop with a dumbbell or medicine ball is a different load and is not what the table measures. Prices per rep at 150 lb: 8 lb 2.6, 15 lb 6.1, 30 lb 15.5, 50 lb 25.6, 100 lb 48.8.
+The cable woodchop (`/woodchops`) is priced from Strength Level's cable woodchopper table (men, 1RM, 150 lb row 13 / 36 / 73 / 122 lb, read 2026-10-12, [source](https://strengthlevel.com/strength-standards/cable-woodchopper/lb)). The weight is the stack setting.
+
+The hip thrust (`/hipthrust`) is priced from Strength Level's hip thrust table (men, 1RM, 150 lb row 93 / 170 / 275 / 406 lb, read 2026-10-12, [source](https://strengthlevel.com/strength-standards/hip-thrust/lb)).
 
 The 1RM tables used (Beginner / Novice / Intermediate / Advanced, men at 150 lb; dumbbell lifts in the combined convention) are in `src/strengthLevelTables.ts` with their source and read date.
 
