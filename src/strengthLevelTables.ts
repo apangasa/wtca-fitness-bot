@@ -728,6 +728,29 @@ export const LIFT_TABLES: Record<string, Row[]> = {
 142/213/303/409
 148/221/312/420
 154/228/321/430`),
+  // Strength Level's cable woodchopper (men), read 2026-10-12: 1RM.
+  woodchops: parse(`
+8/27/59/104
+9/29/63/109
+11/32/66/113
+12/34/70/118
+13/36/73/122
+15/39/76/126
+16/41/79/130
+17/43/82/134
+19/45/85/138
+20/47/88/141
+21/49/90/144
+22/51/93/147
+24/53/95/150
+25/54/98/153
+26/56/100/156
+27/58/102/159
+28/59/104/162
+29/61/106/164
+30/62/108/167
+31/64/110/170
+32/66/112/172`),
 };
 // The machine lat pulldown follows body weight on the same Strength Level table as the plain lat pulldown.
 LIFT_TABLES.machinelatpulldown = LIFT_TABLES.latpulldown!;
