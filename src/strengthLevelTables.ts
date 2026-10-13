@@ -705,6 +705,29 @@ export const LIFT_TABLES: Record<string, Row[]> = {
 69/110/163/226
 72/114/168/231
 75/118/172/237`),
+  // Strength Level's good morning (men), read 2026-10-12: barbell, 1RM.
+  goodmorning: parse(`
+20/51/99/163
+26/61/113/181
+33/71/126/197
+40/81/139/214
+47/91/152/230
+54/100/165/245
+61/110/177/260
+68/119/189/274
+75/129/200/288
+82/138/212/302
+89/147/223/315
+96/156/234/328
+103/164/244/340
+109/173/255/352
+116/181/265/364
+123/189/275/376
+129/197/284/387
+136/205/294/398
+142/213/303/409
+148/221/312/420
+154/228/321/430`),
 };
 // The machine lat pulldown follows body weight on the same Strength Level table as the plain lat pulldown.
 LIFT_TABLES.machinelatpulldown = LIFT_TABLES.latpulldown!;
