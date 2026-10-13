@@ -25,8 +25,8 @@ Scaling lift weights by body weight with one exponent would need an exponent the
 - The accepted range is 110-310 lb, the range of Strength Level's tables.
 - The price per rep shown in a person's own log reply is computed from their weight.
 - Between Strength Level's 10 lb rows, each anchor is interpolated linearly in body weight, before any price is computed.
-- **History:** the current value applies to all of the person's history in a running season, because entries do not store body weight. Closed seasons stay frozen.
-- **Storage:** `user_weight` holds the current value and `user_weight_log` is an append-only record of every change (a clear is logged as an empty weight). A read-only listing of both: `tsx src/scripts/inspect-db.ts`.
+- **History:** an entry keeps the body weight the person had when they logged it (`entries.body_lb`, copied from `user_weight` at logging), so changing `/weight` affects only what is logged afterwards. An unset weight is stored as the 150 lb default. Changed 2026-10-13; until then the current value rescored all of a running season's entries. A person's first weight also goes onto their earlier entries in the running season that have none (at the time of the change, and at `/weight set`); a later change or a clear does not touch the past; Season 1 had no body weight and keeps none (its entries store NULL, the 150 lb default). Closed seasons stay frozen.
+- **Storage:** `user_weight` holds the current value (and `entries.body_lb` the weight each entry was logged at) and `user_weight_log` is an append-only record of every change (a clear is logged as an empty weight). A read-only listing of both: `tsx src/scripts/inspect-db.ts`.
 - The data is in `src/strengthLevelTables.ts`: Strength Level's male by-bodyweight tables, 110-310 lb in 21 rows, with source and read date in its header.
 
 ## Size of the effect

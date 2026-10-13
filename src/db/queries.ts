@@ -10,7 +10,7 @@ import {
   type PricingSpec,
 } from '../scoring.js';
 import { BW_MAX, BW_MIN, inBodyweightRange } from '../strengthLevelTables.js';
-import { closedSeasons, type Season } from '../seasons.js';
+import { closedSeasons, seasonRuleFor, type Season } from '../seasons.js';
 import { dayKeyFor, previousDayKey } from '../time.js';
 import { db, invalidateScoring } from './index.js';
 
@@ -61,7 +61,7 @@ export interface EntryRow {
 }
 
 /** SQL for one entry's points (e = entries); calls the registered entry_points function. */
-export const POINTS_SQL = 'entry_points(e.exercise_key, e.amount, e.weight, e.user_id)';
+export const POINTS_SQL = 'entry_points(e.exercise_key, e.amount, e.weight, e.body_lb)';
 
 /** Price per rep at a logged weight (null = none) for a person of that body weight. */
 export function priceAt(ex: Pick<ExerciseRow, 'pricing'>, weight: number | null, bodyLb: number = SCORING.BODY_LB): number {
@@ -79,7 +79,7 @@ export function bodyWeightOf(userId: string): number {
   return getUserWeight(userId) ?? SCORING.BODY_LB;
 }
 
-/** Sets a body weight; throws RangeError outside 110-310 lb. Logged append-only. */
+/** Sets a body weight; throws RangeError outside 110-310 lb. Logged append-only. A person's first weight also goes onto their earlier entries in the running season that have none. */
 export function setUserWeight(userId: string, lb: number): void {
   if (!inBodyweightRange(lb)) {
     throw new RangeError(`Body weight must be between ${BW_MIN} and ${BW_MAX} lb (the range of Strength Level's standards).`);
@@ -87,6 +87,12 @@ export function setUserWeight(userId: string, lb: number): void {
   const conn = db();
   const now = DateTime.utc().toISO();
   conn.transaction(() => {
+    const first = (conn.prepare('SELECT 1 FROM user_weight_log WHERE user_id = ?').get(userId) === undefined);
+    if (first) {
+      conn
+        .prepare('UPDATE entries SET body_lb = ? WHERE user_id = ? AND body_lb IS NULL AND day_key >= ?')
+        .run(lb, userId, seasonRuleFor(dayKeyFor()).startDay);
+    }
     conn
       .prepare(
         `INSERT INTO user_weight (user_id, weight_lb, updated_at) VALUES (?, ?, ?)
@@ -405,10 +411,11 @@ export function addEntry(
 ): void {
   db()
     .prepare(
-      `INSERT INTO entries (guild_id, user_id, exercise_key, day_key, amount, created_at, weight)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      // The body weight is copied onto the entry, so a later /weight does not rescore it.
+      `INSERT INTO entries (guild_id, user_id, exercise_key, day_key, amount, created_at, weight, body_lb)
+       VALUES (?, ?, ?, ?, ?, ?, ?, (SELECT weight_lb FROM user_weight WHERE user_id = ?))`,
     )
-    .run(guildId, userId, exerciseKey, dayKey, amount, DateTime.utc().toISO(), weight);
+    .run(guildId, userId, exerciseKey, dayKey, amount, DateTime.utc().toISO(), weight, userId);
 }
 
 export function recentUsage(guildId: string, userId: string, sinceKey: string): Map<string, number> {

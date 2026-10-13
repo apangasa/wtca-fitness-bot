@@ -53,7 +53,7 @@ export const weightCommand: CommandDef = {
         content:
           `**${name}** is now scored at ${formatWeight(lbs)}. ` +
           `Lift points (bench, rows, curls and so on) and bodyweight-exercise points (push-ups, pull-ups, squats, sit-ups, ab-rolls and the like) use ` +
-          `Strength Level's standards for ${formatWeight(lbs)} instead of ${REFERENCE}, for everything logged in a season that is still running; finished seasons stay as they were frozen. ` +
+          `Strength Level's standards for ${formatWeight(lbs)} instead of ${REFERENCE}, for what you log from now on; entries you already logged keep the weight they had. ` +
           `\`/weight clear\` goes back to ${REFERENCE}.`,
       });
       return;
@@ -63,7 +63,7 @@ export const weightCommand: CommandDef = {
       const had = clearUserWeight(userId);
       await interaction.reply({
         content: had
-          ? `**${name}** cleared their weight: lifts and bodyweight exercises are scored against the ${REFERENCE} standards again, for everything in a running season.`
+          ? `**${name}** cleared their weight: lifts and bodyweight exercises are scored against the ${REFERENCE} standards again, for what you log from now on; entries you already logged keep the weight they had.`
           : `You had no body weight set; your lifts and bodyweight exercises are scored against the ${REFERENCE} standards.`,
         ...(had ? {} : ephemeral),
       });

@@ -60,7 +60,9 @@ CREATE TABLE IF NOT EXISTS entries (
   created_at    TEXT NOT NULL,
   -- Logged weight in lb for a weighted lift; NULL when there was none, which
   -- scores at the reference weight (the exercise's plain base price).
-  weight        REAL
+  weight        REAL,
+  -- The person's body weight in lb when the entry was logged (a copy of user_weight then); NULL scores at the 150 lb default.
+  body_lb       REAL
 );
 
 CREATE INDEX IF NOT EXISTS idx_entries_day      ON entries(guild_id, day_key);

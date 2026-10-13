@@ -63,7 +63,7 @@ if (reopen) {
   check('reopen: a curve tuned in the database survives a restart', JSON.stringify(bench.pricing) === JSON.stringify({ kind: 'lift', oneRM: [100, 140, 190, 240] }), JSON.stringify(bench.pricing));
   check('reopen: a hand-set run price is not put back to 521 by the migration', q.getExercise('run')!.pricing?.kind === 'flat' && (q.getExercise('run')!.pricing as { p: number }).p === 777);
   check('reopen: burpees tuned to 11 are not repriced again', (q.getExercise('burpees')!.pricing as { p: number }).p === 11);
-  check('reopen: the migration did not run again (user_version 10, an unusable record is not repaired behind your back)', userVersion() === 10 && q.getExercise('abrolls')!.pricing === null);
+  check('reopen: the migration did not run again (user_version 11, an unusable record is not repaired behind your back)', userVersion() === 11 && q.getExercise('abrolls')!.pricing === null);
   const machineRe = q.getExercise('machinelatpulldown')!;
   check('reopen: migration 9 moved the live-style machine lat pulldown record from the doubled to the x1.5 anchors (and its reference weight)', machineRe.pricing?.kind === 'lift' && machineRe.pricing.oneRM.join() === '133.5,186,249,322.5' && machineRe.refWeight !== null && near(machineRe.refWeight, (29 / 36) * 186, 1e-9), JSON.stringify(machineRe));
   check('reopen: nothing was duplicated', q.listExercises().filter((e) => e.key === 'benchpress').length === 1);
@@ -124,7 +124,7 @@ const oldRun = q.dayTotals(GUILD, '2026-09-12').find((t) => t.exerciseKey === 'r
 check('the 3-mile run logged before was backfilled to 3 x 521.14', !!oldRun && near(oldRun.points, 3 * RUN), String(oldRun?.points));
 const swimEx = q.getExercise('swim');
 check('swim exists at 1.0286 per yard', swimEx?.pricing?.kind === 'flat' && near(swimEx.pricing.p, SWIM) && swimEx.unit === 'yd', JSON.stringify(swimEx));
-check('the one-shot upgrades are recorded (user_version 10)', userVersion() === 10);
+check('the one-shot upgrades are recorded (user_version 11)', userVersion() === 11);
 const machineLat = q.getExercise('machinelatpulldown')!;
 check('machine lat pulldown is seeded as a lift on the lat pulldown anchors x1.5 and its own table', machineLat.label === 'Machine Lat Pulldown' && machineLat.pricing?.kind === 'lift' && machineLat.pricing.table === 'machinelatpulldown' && machineLat.pricing.oneRM.join() === '133.5,186,249,322.5' && machineLat.refWeight !== null, JSON.stringify(machineLat));
 check('a stack setting of 1.5w on the machine lat pulldown pays what w pays on the plain lat pulldown, at 150 lb and at 220 lb', [150, 220].every((bw) => [50, 72.5, 90, 100].every((w) => near(buildCurve(catalogPricing('machinelatpulldown')!, bw)(1.5 * w), buildCurve(catalogPricing('latpulldown')!, bw)(w), 1e-9))));
@@ -492,18 +492,28 @@ const { LIFT_1RM } = S;
   q.ensureUser('w-a', 'WA'); q.ensureUser('w-b', 'WB'); q.ensureUser('w-c', 'WC'); q.ensureUser('w-d', 'WD'); q.ensureUser('w-e', 'WE');
   const wd = '2026-10-04';
   const pts = (u: string, key: string): number => q.dayTotals(GUILD, wd).find((t) => t.userId === u && t.exerciseKey === key)?.points ?? NaN;
-  for (const u of ['w-a', 'w-b', 'w-c', 'w-d', 'w-e']) {
-    q.addEntry(GUILD, u, 'benchpress', wd, 8, 135);
-    q.addEntry(GUILD, u, 'pushups', wd, 20, null);
-    q.addEntry(GUILD, u, 'squats', wd, 10, 100);
-  }
+  const logDay = (): void => {
+    for (const u of ['w-a', 'w-b', 'w-c', 'w-d', 'w-e']) {
+      q.addEntry(GUILD, u, 'benchpress', wd, 8, 135);
+      q.addEntry(GUILD, u, 'pushups', wd, 20, null);
+      q.addEntry(GUILD, u, 'squats', wd, 10, 100);
+    }
+  };
+  const undoDay = (): void => { for (const u of ['w-a', 'w-b', 'w-c', 'w-d', 'w-e']) for (let i = 0; i < 3; i++) q.undoLastEntry(GUILD, u, wd); };
+  logDay();
   const base = 8 * model('benchpress', 135);
   check('no body weight set: totals are the 150 lb model (default users unchanged)', near(pts('w-a', 'benchpress'), base, 1e-9));
   check('setting 150 equals unset', (q.setUserWeight('w-c', 150), near(pts('w-c', 'benchpress'), pts('w-a', 'benchpress'), 1e-9) && near(pts('w-c', 'squats'), pts('w-a', 'squats'), 1e-9)));
+  // A first weight is stamped back onto the earlier entries that had none; a later change, or a clear, touches only entries logged after it.
   q.setUserWeight('w-b', 120);
+  check('a first weight is stamped back onto the earlier entries that had none', near(pts('w-b', 'benchpress'), 8 * S.buildCurve(S.catalogPricing('benchpress')!, 120)(135), 1e-9));
+  q.setUserWeight('w-c', 140);
+  check('a later weight change does not rescore what was already logged', near(pts('w-c', 'benchpress'), base, 1e-9));
+  undoDay();
+  q.setUserWeight('w-d', 135);
+  logDay();
   check('two users with different weights get different prices for the same entry, with no restart',
     near(pts('w-b', 'benchpress'), 8 * S.buildCurve(S.catalogPricing('benchpress')!, 120)(135), 1e-9) && pts('w-b', 'benchpress') > pts('w-a', 'benchpress'), pts('w-b', 'benchpress') + ' vs ' + pts('w-a', 'benchpress'));
-  q.setUserWeight('w-d', 135);
   check('a 135 lb person scores between the 120 and 150 lb persons', pts('w-d', 'benchpress') > pts('w-a', 'benchpress') && pts('w-d', 'benchpress') < pts('w-b', 'benchpress'));
   check('no-load push-ups pay the person\'s row-derived price, and 150 lb pays 6', near(pts('w-b', 'pushups'), 20 * implied(19, 42), 1e-9) && near(pts('w-a', 'pushups'), 20 * 6, 1e-9));
   check('a weighted bodyweight exercise follows the person (squat with 100 lb)', near(pts('w-b', 'squats'), 10 * S.buildCurve(S.catalogPricing('squats')!, 120)(100), 1e-9) && pts('w-b', 'squats') !== pts('w-a', 'squats'));
@@ -512,7 +522,11 @@ const { LIFT_1RM } = S;
   check('the scoreboard uses the same personal prices', near(sbB.points, pts('w-b', 'benchpress') + pts('w-b', 'pushups') + pts('w-b', 'squats'), 1e-9));
   check('/weight values outside the table are rejected', [100, 109.99, 311, 1000, NaN].every((b) => { try { q.setUserWeight('w-e', b); return false; } catch (e) { return e instanceof RangeError; } }) && q.getUserWeight('w-e') === null);
   check('the table edges are accepted', (q.setUserWeight('w-e', 110), q.getUserWeight('w-e') === 110) && (q.setUserWeight('w-e', 310), q.getUserWeight('w-e') === 310));
-  check('clear restores the default', q.clearUserWeight('w-b') === true && near(pts('w-b', 'benchpress'), pts('w-a', 'benchpress'), 1e-9) && q.getUserWeight('w-b') === null && q.clearUserWeight('w-b') === false);
+  const atClear = pts('w-b', 'benchpress');
+  check('clear applies to later entries only', q.clearUserWeight('w-b') === true && near(pts('w-b', 'benchpress'), atClear, 1e-12) && q.getUserWeight('w-b') === null && q.clearUserWeight('w-b') === false);
+  q.addEntry(GUILD, 'w-b', 'benchpress', wd, 8, 135);
+  check('an entry after the clear scores at the default, the earlier one at 120', near(pts('w-b', 'benchpress'), atClear + base, 1e-9));
+  q.undoLastEntry(GUILD, 'w-b', wd);
   const logB = q.userWeightLog().filter((l) => l.userId === 'w-b');
   check('every change is appended to the log (set 120, then a clear as NULL), and clearing nothing logs nothing', logB.length === 2 && logB[0]!.weightLb === 120 && logB[1]!.weightLb === null, JSON.stringify(logB));
   check('the current table holds only live weights', q.listUserWeights().every((w) => w.userId !== 'w-b') && q.listUserWeights().some((w) => w.userId === 'w-d' && w.weightLb === 135));
@@ -520,12 +534,14 @@ const { LIFT_1RM } = S;
     // A weight written by another process is scored without a restart.
     const other = new Database(dbFile);
     other.prepare("INSERT OR REPLACE INTO user_weight (user_id, weight_lb, updated_at) VALUES ('w-a', 120, 'x')").run();
-    check('a body weight written from another connection is scored at once', near(pts('w-a', 'benchpress'), 8 * S.buildCurve(S.catalogPricing('benchpress')!, 120)(135), 1e-9));
+    q.addEntry(GUILD, 'w-a', 'benchpress', wd, 8, 135);
+    check('a body weight written from another connection is used by the next entry', near(pts('w-a', 'benchpress'), base + 8 * S.buildCurve(S.catalogPricing('benchpress')!, 120)(135), 1e-9));
     other.prepare("DELETE FROM user_weight WHERE user_id = 'w-a'").run();
     other.close();
-    check('and removing it restores the default', near(pts('w-a', 'benchpress'), base, 1e-9));
+    check('and the entry it made keeps that weight after the weight is removed', near(pts('w-a', 'benchpress'), base + 8 * S.buildCurve(S.catalogPricing('benchpress')!, 120)(135), 1e-9));
+    q.undoLastEntry(GUILD, 'w-a', wd);
   }
-  for (const u of ['w-a', 'w-b', 'w-c', 'w-d', 'w-e']) for (let i = 0; i < 3; i++) q.undoLastEntry(GUILD, u, wd);
+  undoDay();
 
   // /weight: public replies, errors private, and the logging reply shows the person's own price.
   check('/weight is registered', buildCommands().has('weight') && (buildCommands().get('weight')!.data.options ?? []).map((o) => o.name).join() === 'set,show,clear');

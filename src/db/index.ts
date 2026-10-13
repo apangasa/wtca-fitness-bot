@@ -14,6 +14,8 @@ import {
   type Curve,
   type PricingRow,
 } from '../scoring.js';
+import { dayKeyFor } from '../time.js';
+import { seasonRuleFor } from '../seasons.js';
 import { GUARDS, SCHEMA } from './schema.js';
 
 let handle: Database.Database | null = null;
@@ -44,10 +46,9 @@ function warnUnpriced(conn: Database.Database): void {
   if (bad.length > 0) console.error(`scoring: these exercises have no usable pricing record and score 0: ${bad.join(', ')}`);
 }
 
-// better-sqlite3 cannot query inside a user function, so exercise rows and body weights are cached and reloaded in db() when stale.
+// better-sqlite3 cannot query inside a user function, so exercise rows are cached and reloaded in db() when stale.
 // Own writes call invalidateScoring(); another connection's writes change data_version; raw SQL on this connection needs invalidateScoring().
 const exerciseRows = new Map<string, PricingRow>();
-const bodyWeights = new Map<string, number>();
 const curves = new Map<string, Curve>();
 let seenDataVersion = -1;
 
@@ -73,18 +74,16 @@ function refreshScoring(conn: Database.Database): void {
   const rows = conn
     .prepare('SELECT key, pricing, pending FROM exercises')
     .all() as { key: string; pricing: string | null; pending: number }[];
-  const weights = conn.prepare('SELECT user_id, weight_lb FROM user_weight').all() as { user_id: string; weight_lb: number }[];
   exerciseRows.clear();
-  bodyWeights.clear();
   curves.clear();
   for (const row of rows) exerciseRows.set(row.key, { key: row.key, pricing: row.pricing, pending: row.pending === 1 });
-  for (const w of weights) bodyWeights.set(w.user_id, w.weight_lb);
   seenDataVersion = version;
 }
 
 function registerScoring(conn: Database.Database): void {
-  conn.function('entry_points', (key, amount, weight, userId) => {
-    const curve = curveFor(key as string, bodyWeights.get(userId as string) ?? SCORING.BODY_LB);
+  // bodyLb is the body weight stored on the entry; NULL is the 150 lb default.
+  conn.function('entry_points', (key, amount, weight, bodyLb) => {
+    const curve = curveFor(key as string, (bodyLb as number | null) ?? SCORING.BODY_LB);
     return curve ? entryPoints(curve, amount as number, (weight as number | null) ?? null) : 0;
   });
   refreshScoring(conn);
@@ -132,6 +131,7 @@ function migrate(conn: Database.Database): void {
 
   const entryCols = conn.prepare('PRAGMA table_info(entries)').all() as { name: string }[];
   if (!entryCols.some((c) => c.name === 'weight')) conn.exec('ALTER TABLE entries ADD COLUMN weight REAL');
+  if (!entryCols.some((c) => c.name === 'body_lb')) conn.exec('ALTER TABLE entries ADD COLUMN body_lb REAL');
 
   // Renames a key: copies the row (the key is a foreign key target), repoints the entries, drops the old row.
   const renameKey = conn.transaction((from: string, to: string) => {
@@ -281,6 +281,28 @@ function migrateAfterSeed(conn: Database.Database): void {
     }
     backfillCatalogPricing(conn);
     conn.pragma('user_version = 10');
+    invalidateScoring();
+  }
+  if (version < 11) {
+    // Migration 11: an entry keeps the body weight it was logged at (entries.body_lb), so a later /weight never rescores it.
+    // Entries in the running season take the weight in effect at their time from user_weight_log (a clear is NULL, the default);
+    // those before a person's first weight take that first weight. Closed seasons had no body weight, so their entries stay NULL (the default).
+    const openFrom = seasonRuleFor(dayKeyFor()).startDay;
+    const log = conn.prepare('SELECT user_id, weight_lb, set_at FROM user_weight_log ORDER BY id').all() as { user_id: string; weight_lb: number | null; set_at: string }[];
+    const byUser = new Map<string, { weight_lb: number | null; set_at: string }[]>();
+    for (const l of log) byUser.set(l.user_id, [...(byUser.get(l.user_id) ?? []), l]);
+    const entries = conn.prepare('SELECT id, user_id, day_key, created_at FROM entries WHERE body_lb IS NULL').all() as { id: number; user_id: string; day_key: string; created_at: string }[];
+    const set = conn.prepare('UPDATE entries SET body_lb = ? WHERE id = ?');
+    conn.transaction(() => {
+      for (const e of entries) {
+        const rows = byUser.get(e.user_id) ?? [];
+        if (e.day_key < openFrom) continue;
+        const prior = rows.filter((r) => r.set_at <= e.created_at);
+        const lb = prior.length > 0 ? prior[prior.length - 1]!.weight_lb : (rows.find((r) => r.weight_lb !== null)?.weight_lb ?? null);
+        if (lb !== null) set.run(lb, e.id);
+      }
+    })();
+    conn.pragma('user_version = 11');
     invalidateScoring();
   }
 }
