@@ -705,6 +705,29 @@ export const LIFT_TABLES: Record<string, Row[]> = {
 69/110/163/226
 72/114/168/231
 75/118/172/237`),
+  // Strength Level's cable overhead tricep extension (men), read 2026-10-14: 1RM, weight is the stack setting.
+  cableoverheadtricepextension: parse(`
+11/28/55/91
+14/33/62/99
+17/38/68/107
+20/42/74/115
+23/47/80/122
+27/51/86/129
+30/56/91/136
+33/60/97/142
+36/64/102/149
+39/68/107/155
+42/72/112/161
+45/76/117/167
+48/80/122/173
+51/84/127/178
+54/87/131/184
+57/91/136/189
+60/95/140/194
+62/98/144/199
+65/102/148/204
+68/105/152/209
+71/108/156/213`),
   // Strength Level's good morning (men), read 2026-10-12: barbell, 1RM.
   goodmorning: parse(`
 20/51/99/163

@@ -107,6 +107,8 @@ The good morning (`/goodmorning`) is priced from Strength Level's good morning t
 
 The cable woodchop (`/woodchops`) is priced from Strength Level's cable woodchopper table (men, 1RM, 150 lb row 13 / 36 / 73 / 122 lb, read 2026-10-12, [source](https://strengthlevel.com/strength-standards/cable-woodchopper/lb)). The weight is the stack setting.
 
+The rope overhead tricep extension (`/ropeoverheadtricepextension`) is priced from Strength Level's cable overhead tricep extension table (men, 1RM, 150 lb row 23 / 47 / 80 / 122 lb, read 2026-10-14, [source](https://strengthlevel.com/strength-standards/cable-overhead-tricep-extension/lb)), not the barbell tricep extension table (23 / 49 / 86 / 133), which counts total bar load. The weight is the stack setting. The page does not say which attachment it counts; the rope is logged there as the closest match.
+
 The hip thrust (`/hipthrust`) is priced from Strength Level's hip thrust table (men, 1RM, 150 lb row 93 / 170 / 275 / 406 lb, read 2026-10-12, [source](https://strengthlevel.com/strength-standards/hip-thrust/lb)).
 
 The 1RM tables used (Beginner / Novice / Intermediate / Advanced, men at 150 lb; dumbbell lifts in the combined convention) are in `src/strengthLevelTables.ts` with their source and read date.
