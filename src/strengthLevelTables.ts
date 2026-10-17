@@ -290,6 +290,29 @@ export const LIFT_TABLES: Record<string, Row[]> = {
 250/327/417/519
 259/336/428/531
 267/345/439/543`),
+  // Strength Level's dumbbell Romanian deadlift (men), read 2026-10-16: 1RM per dumbbell, doubled to combined.
+  dbrdl: doubled(parse(`
+19/36/60/90
+23/41/66/98
+26/46/72/105
+30/50/78/111
+33/55/83/118
+36/59/88/124
+39/63/93/130
+43/67/98/136
+46/71/103/141
+49/75/108/147
+52/78/112/152
+55/82/116/157
+58/86/121/162
+61/89/125/166
+63/92/129/171
+66/96/133/176
+69/99/137/180
+72/102/140/184
+74/105/144/188
+77/108/147/192
+79/111/151/196`)),
   // Barbell curl table (the bot's bicep curls are "dumbbells combined, or the bar").
   bicepcurls: parse(`
 24/42/66/95

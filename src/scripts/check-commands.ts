@@ -33,7 +33,7 @@ for (const gone of ['log', 'lift', 'set', 'config', 'abcrunch', 'addexercise', '
 }
 const LIFTS = [
   'benchpress', 'narrowbench', 'dbbench', 'overheadpress', 'legpress', 'latpulldown', 'machinelatpulldown', 'reversegriplatpulldown', 'row', 'deadlift',
-  'rdl', 'bicepcurls', 'triceppushdown', 'cableflies', 'lateralraise', 'seatedlegcurl', 'lyinglegcurl', 'assistedpullups', 'cablecrunch', 'barbellbulgariansplitsquat', 'dbbulgariansplitsquat',
+  'rdl', 'bicepcurls', 'triceppushdown', 'cableflies', 'lateralraise', 'seatedlegcurl', 'lyinglegcurl', 'assistedpullups', 'cablecrunch', 'barbellbulgariansplitsquat', 'dbbulgariansplitsquat', 'dbrdl',
 ];
 for (const kept of ['undo', 'today', 'new', 'queue', 'run', 'swim', 'pushups', 'squats', 'leaderboard', 'me', 'seasons', 'weight', ...LIFTS]) {
   if (!commands.has(kept)) fail(`/${kept} is missing`);

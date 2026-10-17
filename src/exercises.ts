@@ -65,7 +65,7 @@ export const SEED_EXERCISES: ExerciseSeed[] = [
   { key: 'machinelatpulldown', label: 'Machine Lat Pulldown', unit: 'reps', weightNote: 'stack setting' },
   { key: 'row', label: 'Row', unit: 'reps', weightNote: 'total load' },
   { key: 'deadlift', label: 'Deadlift', unit: 'reps', weightNote: 'bar + plates' },
-  { key: 'rdl', label: 'Romanian Deadlift', unit: 'reps', weightNote: 'total load' },
+  { key: 'rdl', label: 'Romanian Deadlift', unit: 'reps', weightNote: 'bar + plates' },
   { key: 'bicepcurls', label: 'Bicep Curls', unit: 'reps', weightNote: 'dumbbells combined, or the bar' },
   { key: 'triceppushdown', label: 'Tricep Pushdown', unit: 'reps', weightNote: 'stack setting' },
   { key: 'cableflies', label: 'Cable Flies', unit: 'reps', weightNote: 'both sides combined' },
@@ -80,6 +80,7 @@ export const SEED_EXERCISES: ExerciseSeed[] = [
   { key: 'swim', label: 'Swim', unit: 'yd' },
   // Kneeling rope cable crunch only; ab machines need their own lift.
   { key: 'cablecrunch', label: 'Cable Crunch', unit: 'reps', weightNote: 'cable stack setting' },
+  { key: 'dbrdl', label: 'DB Romanian Deadlift', unit: 'reps', weightNote: 'both dumbbells combined' },
 ];
 
 /** A lift cannot be scored without a weight; squats are the exception (none = bodyweight). */
