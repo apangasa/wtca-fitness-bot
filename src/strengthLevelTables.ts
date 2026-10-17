@@ -1067,6 +1067,29 @@ export const REPS_TABLES: Record<string, Row[]> = {
 3/18/38/62
 3/17/37/60
 2/16/36/58`),
+  // Strength Level's floor hip abduction (men), read 2026-10-17: reps to failure, side-lying; prices sidelyinghipabduction.
+  sidelyinghipabduction: parse(`
+<1/4/24/51
+<1/6/25/51
+<1/7/26/51
+<1/8/27/50
+<1/9/27/50
+<1/9/27/49
+<1/9/27/48
+<1/10/27/48
+<1/10/27/47
+<1/10/27/46
+<1/10/26/45
+<1/10/26/44
+<1/10/26/44
+<1/10/25/43
+<1/10/25/42
+<1/10/25/41
+<1/10/24/41
+<1/10/24/40
+<1/10/23/39
+<1/10/23/38
+<1/10/23/38`),
 };
 
 /** Pull-up added-weight 1RM (negative = assistance); effective = body weight + this. */

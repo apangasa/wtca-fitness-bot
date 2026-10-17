@@ -62,6 +62,7 @@ A bodyweight exercise with an added load uses the same curve. The effective weig
 | Squat, lunge, calf raise | 1.0 | Body weight and added load are carried by the same limbs, so they scale together whatever the split between legs. Only the feet (1.45% each) and shanks (4.65% each) are not borne through the lifting chain: at most 12% for a squat, 3% for a calf raise. For squat, k = 1 also matches the barbell-table cross-check (effective 1RM 280 from reps against 282 from the barbell table). |
 | Push-up | 0.70 | [Hewit et al., Res Investig Sports Med, 2019](https://crimsonpublishers.com/rism/fulltext/RISM.000591.php) (22 men): about 70% of body weight through the hands at the start of a bout, falling to 52% as they fatigued. Suprak et al. report 69-75% and Ebben et al. 64% (cited from secondary summaries). |
 | Sit-up | 0.678 | Winter's anthropometric table (from Dempster): head, arms and trunk are 67.8% of body weight. |
+| Side-lying hip abduction | 0.161 | Winter's table: the whole top leg (thigh 10.0%, shank 4.65%, foot 1.45%). The weight is an ankle weight; see below for why leverage is not modelled. |
 
 Segment masses: Winter, *Biomechanics and Motor Control of Human Movement*, Table 4.1. A weight held on the chest sits further from the hip than the trunk's own centre of mass, so a pound there loads the abs somewhat more than a pound of trunk; this is not modelled.
 
@@ -72,6 +73,15 @@ Segment masses: Winter, *Biomechanics and Motor Control of Human Movement*, Tabl
 | Price per rep | 4.4 | 8.3 | 13.1 | 17.0 | 21.8 | 25.5 |
 
 For bars above about 124 lb this is lower than the barbell table would give (185 lb: 21.8 against 34.1). The heaviest logged squat bar is 105 lb.
+
+**Side-lying hip abduction** (`/sidelyinghipabduction`, decided 2026-10-17). Strength Level's floor hip abduction reps table (men, 150 lb row <1 / 9 / 27 / 50, read 2026-10-17, [source](https://strengthlevel.com/strength-standards/floor-hip-abduction/lb); "<1" read as 1) gives a flat price of 11.11 (implied 13.33 / 8.89). One rep is one leg's rep, and the weight is the ankle weight on that leg.
+
+| Ankle weight | 0 | 5 lb | 8 lb | 10 lb | 15 lb | 20 lb |
+|---|---|---|---|---|---|---|
+| Price per rep (150 lb) | 11.1 | 18.0 | 21.5 | 24.0 | 30.0 | 35.4 |
+
+- **Why not count leverage.** An ankle weight sits further from the hip than the leg's centre of mass (0.447 of the hip-to-ankle length, Winter), so by torque the leg is worth only 0.161 × 0.447 = 0.072 of body weight in ankle pounds. Checked against logged sets, that k placed this exercise 1.5 to 2 levels above the same lifter's other lifts, so it overpays.
+- **What reps to failure imply.** About 20 reps per leg with no weight and about 12 with 8 lb reconcile only at k ≈ 0.34, above the leg's whole mass, which suggests the reps-to-1RM conversion overstates small loads at high reps. Those are two rough estimates, so 0.161, the largest physically sourced value, is used. Fresh maximum sets with and without the ankle weight would let k be fitted.
 
 ## Assisted pull-ups
 

@@ -22,6 +22,7 @@ One price cannot match the ladder at every level, because each exercise's rep cu
 | Lunge | 14 / 38 | 8.57 / 6.32 | 7.44 | 26% |
 | Ab-roll | 7 / 21 | 17.14 / 11.43 | 14.29 | 33% |
 | Burpee | 10 / 35 | 12.00 / 6.86 | 9.43 | 43% |
+| Side-lying hip abduction | 9 / 27 | 13.33 / 8.89 | 11.11 | 33% |
 | Calf raise | 30 / 63 | 4.00 / 3.81 | 1.4 (see below) | |
 
 The gap is how far apart the two levels' implied prices are, so it is the error at either level if one price is used.
