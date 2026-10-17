@@ -19,7 +19,7 @@ One price cannot match the ladder at every level, because each exercise's rep cu
 | Sit-up | 27 / 57 | 4.44 / 4.21 | 4.33 | 5% |
 | Squat | 26 / 58 | 4.62 / 4.14 | 4.38 | 10% |
 | Leg raise | 12 / 31 | 10.00 / 7.74 | 8.87 | 23% |
-| Lunge | 14 / 38 | 8.57 / 6.32 | 7.44 | 26% |
+| Lunge | 14 / 38 | 8.57 / 6.32 | 7.44 (one-side: 3.72 per step, [points-lifts.md](points-lifts.md#one-side-exercises)) | 26% |
 | Ab-roll | 7 / 21 | 17.14 / 11.43 | 14.29 | 33% |
 | Burpee | 10 / 35 | 12.00 / 6.86 | 9.43 | 43% |
 | Side-lying hip abduction | 9 / 27 | 13.33 / 8.89 | 11.11 (one-side: 5.56 per leg rep, [points-lifts.md](points-lifts.md#one-side-exercises)) | 33% |
@@ -29,7 +29,7 @@ The gap is how far apart the two levels' implied prices are, so it is the error 
 
 Notes:
 
-- Strength Level does not say whether a lunge rep counts each step or each pair.
+- Strength Level does not say whether a lunge rep counts each step or each pair; its reps are read as per leg, and a logged step pays half ([points-lifts.md](points-lifts.md#one-side-exercises)).
 - As a consistency check, a burpee priced as a squat plus a push-up is 4.38 + 6 = 10.38, within about 10% of the 9.43 from its own table.
 
 ## Price by body weight
@@ -48,7 +48,7 @@ The Novice and Intermediate reps are read from the person's row (each interpolat
 | Dips | 12.67 | 12.00 | 12.32 |
 | Sit-up | 3.82 | 4.33 | 5.28 |
 | Squat | 3.96 | 4.38 | 5.23 |
-| Lunge | 6.86 | 7.44 | 8.25 |
+| Lunge (per step) | 3.43 | 3.72 | 4.13 |
 | Calf raise | 1.24 | 1.40 | 1.69 |
 | Ab-roll | 21.00 | 14.29 | 13.50 |
 | Assisted ab-roll | 13.44 | 9.14 | 8.64 |

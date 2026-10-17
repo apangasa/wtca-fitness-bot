@@ -18,6 +18,8 @@ function check(name: string, ok: boolean, detail = ''): void {
 const near = (a: number, b: number, tol = 1e-9): boolean => Math.abs(a - b) <= tol;
 // Flat bodyweight price worked independently of scoring.ts: mean of 120 / Novice reps and 240 / Intermediate reps.
 const implied = (nov: number, int: number): number => (120 / nov + 240 / int) / 2;
+// A one-side rep pays half (docs/points-lifts.md).
+const ONE_SIDE = 0.5;
 const RATE = 180 / 3.5;
 const RUN = RATE * (10 + 8 / 60);
 const SWIM = (RATE * 2) / 100;
@@ -63,7 +65,7 @@ if (reopen) {
   check('reopen: a curve tuned in the database survives a restart', JSON.stringify(bench.pricing) === JSON.stringify({ kind: 'lift', oneRM: [100, 140, 190, 240] }), JSON.stringify(bench.pricing));
   check('reopen: a hand-set run price is not put back to 521 by the migration', q.getExercise('run')!.pricing?.kind === 'flat' && (q.getExercise('run')!.pricing as { p: number }).p === 777);
   check('reopen: burpees tuned to 11 are not repriced again', (q.getExercise('burpees')!.pricing as { p: number }).p === 11);
-  check('reopen: the migration did not run again (user_version 12, an unusable record is not repaired behind your back)', userVersion() === 12 && q.getExercise('abrolls')!.pricing === null);
+  check('reopen: the migration did not run again (user_version 13, an unusable record is not repaired behind your back)', userVersion() === 13 && q.getExercise('abrolls')!.pricing === null);
   const machineRe = q.getExercise('machinelatpulldown')!;
   check('reopen: migration 9 moved the live-style machine lat pulldown record from the doubled to the x1.5 anchors (and its reference weight)', machineRe.pricing?.kind === 'lift' && machineRe.pricing.oneRM.join() === '133.5,186,249,322.5' && machineRe.refWeight !== null && near(machineRe.refWeight, (29 / 36) * 186, 1e-9), JSON.stringify(machineRe));
   check('reopen: nothing was duplicated', q.listExercises().filter((e) => e.key === 'benchpress').length === 1);
@@ -113,7 +115,7 @@ check('sort order has no collisions', new Set(orders).size === orders.length, or
 
 const riley = q.dayTotals(GUILD, '2026-09-10').find((t) => t.exerciseKey === 'squats');
 check('50 old squats score 50 x 4.3767 (unrounded)', riley !== undefined && near(riley.points, 50 * implied(26, 58)), `${riley?.points}`);
-check('30 old lunges reprice with the row: 30 x 7.4436', near(q.dayTotals(GUILD, '2026-09-20')[0]!.points, 30 * implied(14, 38)));
+check('30 old lunges reprice with the row, one-side: 30 x 7.4436 / 2', near(q.dayTotals(GUILD, '2026-09-20')[0]!.points, 30 * implied(14, 38) * ONE_SIDE));
 check('old leg press entry was backfilled as 150 lb and scores the leg press curve at 150 lb', near(q.dayTotals(GUILD, '2026-09-24')[0]!.points, 40 * model('legpress', 150)));
 check('the backfill touched only the leg press', q.dayTotals(GUILD, '2026-09-20')[0]!.exerciseKey === 'lunges');
 check('a record-less live exercise scores 0, not by a price from the old columns (10 wall sits)', near(q.dayTotals(GUILD, '2026-09-11')[0]!.points, 0));
@@ -124,7 +126,7 @@ const oldRun = q.dayTotals(GUILD, '2026-09-12').find((t) => t.exerciseKey === 'r
 check('the 3-mile run logged before was backfilled to 3 x 521.14', !!oldRun && near(oldRun.points, 3 * RUN), String(oldRun?.points));
 const swimEx = q.getExercise('swim');
 check('swim exists at 1.0286 per yard', swimEx?.pricing?.kind === 'flat' && near(swimEx.pricing.p, SWIM) && swimEx.unit === 'yd', JSON.stringify(swimEx));
-check('the one-shot upgrades are recorded (user_version 12)', userVersion() === 12);
+check('the one-shot upgrades are recorded (user_version 13)', userVersion() === 13);
 const machineLat = q.getExercise('machinelatpulldown')!;
 check('machine lat pulldown is seeded as a lift on the lat pulldown anchors x1.5 and its own table', machineLat.label === 'Machine Lat Pulldown' && machineLat.pricing?.kind === 'lift' && machineLat.pricing.table === 'machinelatpulldown' && machineLat.pricing.oneRM.join() === '133.5,186,249,322.5' && machineLat.refWeight !== null, JSON.stringify(machineLat));
 check('a stack setting of 1.5w on the machine lat pulldown pays what w pays on the plain lat pulldown, at 150 lb and at 220 lb', [150, 220].every((bw) => [50, 72.5, 90, 100].every((w) => near(buildCurve(catalogPricing('machinelatpulldown')!, bw)(1.5 * w), buildCurve(catalogPricing('latpulldown')!, bw)(w), 1e-9))));
@@ -157,7 +159,7 @@ const squatTable = [0, 45, 90, 135, 185, 225].map((a) => model('squats', a));
 check(`squat table (docs/points-lifts.md) within 0.2: ${squatTable.map((x) => x.toFixed(1)).join(' ')}`, [4.4, 8.3, 13.1, 17.0, 21.8, 25.5].every((v, i) => near(squatTable[i]!, v, 0.2)));
 const ccTable = [20, 30, 40, 60].map((w) => model('cablecrunch', w));
 check(`cable crunch (docs/points-lifts.md) 0.8 / 2.0 / 4.1 / 10.9: ${ccTable.map((x) => x.toFixed(2)).join(' ')}`, [0.8, 2.0, 4.1, 10.9].every((v, i) => near(ccTable[i]!, v, 0.1)));
-const flats: [string, number][] = [['pushups', implied(20, 40)], ['pullups', implied(7, 14)], ['dips', implied(10, 20)], ['chinups', implied(8, 14)], ['situps', implied(27, 57)], ['legraise', implied(12, 31)], ['squats', implied(26, 58)], ['lunges', implied(14, 38)], ['abrolls', implied(7, 21)], ['abrollsassisted', implied(7, 21) * 0.64], ['burpees', implied(10, 35)], ['calfraises', 1.4], ['flightofstairs', 0], ['anklealphabet', 0], ['run', RUN], ['swim', SWIM]];
+const flats: [string, number][] = [['pushups', implied(20, 40)], ['pullups', implied(7, 14)], ['dips', implied(10, 20)], ['chinups', implied(8, 14)], ['situps', implied(27, 57)], ['legraise', implied(12, 31)], ['squats', implied(26, 58)], ['lunges', implied(14, 38) * ONE_SIDE], ['abrolls', implied(7, 21)], ['abrollsassisted', implied(7, 21) * 0.64], ['burpees', implied(10, 35)], ['calfraises', 1.4], ['flightofstairs', 0], ['anklealphabet', 0], ['run', RUN], ['swim', SWIM]];
 check('every flat price is derived and unrounded (Parts 2, 4, 5): push-up 6, run 521.14, swim 1.0286', flats.every(([k, p]) => near(model(k, null), p, 1e-9)), flats.filter(([k, p]) => !near(model(k, null), p, 1e-9)).join(' '));
 const anchors = [3.75, 15, 30, 48];
 check('bench pays 3.75 / 15 / 30 / 48 at its 8-rep anchor weights (29/36 of 1RM)', [99, 137, 183, 236].every((r, i) => near(model('benchpress', (29 / 36) * r), anchors[i]!, 1e-9)));
@@ -464,7 +466,7 @@ const { LIFT_1RM } = S;
     const expected = (key: string, table: string, p150: number, b: number): number => p150 * (impliedAt(table, b) / impliedAt(table, 150));
     const rows: [string, string, number][] = [
       ['pushups', 'pushups', 6], ['pullups', 'pullups', implied(7, 14)], ['assistedpullups', 'pullups', implied(7, 14)], ['chinups', 'chinups', implied(8, 14)],
-      ['dips', 'dips', implied(10, 20)], ['situps', 'situps', implied(27, 57)], ['squats', 'squats', implied(26, 58)], ['lunges', 'lunges', implied(14, 38)],
+      ['dips', 'dips', implied(10, 20)], ['situps', 'situps', implied(27, 57)], ['squats', 'squats', implied(26, 58)], ['lunges', 'lunges', implied(14, 38) * ONE_SIDE],
       ['calfraises', 'calfraises', 1.4], ['abrolls', 'abrolls', implied(7, 21)], ['abrollsassisted', 'abrolls', implied(7, 21) * 0.64],
       ['burpees', 'burpees', implied(10, 35)], ['legraise', 'legraise', implied(12, 31)],
     ];

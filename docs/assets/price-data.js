@@ -56,7 +56,7 @@ export default {
     {
       "key": "lunges",
       "label": "Lunge",
-      "p": 7.443609022556391,
+      "p": 3.7218045112781954,
       "table": "lunges"
     },
     {

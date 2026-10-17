@@ -1,7 +1,7 @@
 // Writes docs/assets/price-data.js, the data behind the body-weight price widget in docs/. `npm run docs:data` after changing a price or a table.
 import { writeFileSync } from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { catalogPricing, SCORING } from '../scoring.js';
+import { catalogPricing, DECISIONS, SCORING } from '../scoring.js';
 import { BW_MAX, BW_MIN, BW_STEP, REPS_TABLES } from '../strengthLevelTables.js';
 
 const BODYWEIGHT_ROWS: [string, string][] = [
@@ -34,7 +34,9 @@ export function buildDocsData(): DocsData {
   const exercises = BODYWEIGHT_ROWS.map(([key, label]) => {
     const spec = catalogPricing(key);
     if (!spec || spec.kind === 'lift' || !spec.table) throw new Error(`${key} has no body-weight table`);
-    return { key, label, p: spec.p, table: spec.table };
+    // A one-side exercise pays half per logged rep (docs/points-lifts.md), so the widget shows that price.
+    const side = spec.kind === 'bw' && spec.oneSide ? DECISIONS.ONE_SIDE_FACTOR : 1;
+    return { key, label, p: side * spec.p, table: spec.table };
   });
   const tables: DocsData['tables'] = {};
   for (const { table } of exercises) {

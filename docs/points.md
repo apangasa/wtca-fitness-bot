@@ -38,7 +38,7 @@ Bodyweight and cardio prices. Bodyweight prices follow your weight class: enter 
 | Burpee | 9.4 per rep |
 | Ab-roll | 14.3 per rep |
 | Assisted ab-roll | 9.1 per rep |
-| Lunge | 7.4 per rep |
+| Lunge | 3.7 per step |
 | Leg raise | 8.9 per rep |
 | Squat | 4.4 per rep |
 | Sit-up | 4.3 per rep |

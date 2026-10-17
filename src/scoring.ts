@@ -139,7 +139,7 @@ export const BODYWEIGHT: Record<string, BodyweightSpec> = {
   situps: bodyweight(DECISIONS.K_SITUP, [27, 57], 'situps', { reps: [5, 27, 57, 94] }),
   squats: bodyweight(DECISIONS.K_FULL, [26, 58], 'squats', { reps: [3, 26, 58, 98] }),
   // Strength Level's Beginner is "<1" lunge reps; 1 is used (an assumption, it only shapes the curve below Beginner).
-  lunges: bodyweight(DECISIONS.K_FULL, [14, 38], 'lunges', { reps: [1, 14, 38, 68] }),
+  lunges: { ...bodyweight(DECISIONS.K_FULL, [14, 38], 'lunges', { reps: [1, 14, 38, 68] }), oneSide: true },
   calfraises: bodyweight(DECISIONS.K_FULL, [30, 63], 'calfraises', { reps: [7, 30, 63, 102], p: DECISIONS.CALF_RAISE_FLAT }),
 };
 

@@ -323,6 +323,17 @@ function migrateAfterSeed(conn: Database.Database): void {
     conn.pragma('user_version = 12');
     invalidateScoring();
   }
+  if (version < 13) {
+    // Migration 13: lunges are one-side too (Strength Level's lunge reps are per leg; players log every step). The live record keeps its numbers.
+    const row = conn.prepare("SELECT pricing FROM exercises WHERE key = 'lunges'").get() as { pricing: string | null } | undefined;
+    const spec = parsePricing(row?.pricing ?? null);
+    if (spec && spec.kind !== 'flat' && !spec.oneSide) {
+      const cols = pricingColumns({ ...spec, oneSide: true });
+      conn.prepare('UPDATE exercises SET pricing = ?, points_per_rep = ? WHERE key = ?').run(cols.json, cols.display, 'lunges');
+    }
+    conn.pragma('user_version = 13');
+    invalidateScoring();
+  }
 }
 
 function seedExercises(conn: Database.Database): void {

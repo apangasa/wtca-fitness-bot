@@ -90,7 +90,8 @@ Some exercises work one arm or one leg at a time, and players log every side's r
 - **Why half.** Prices are set so that an all-out set using both sides pays the ladder (a two-arm curl, a push-up, a bench press). A one-side rep is half that work, so both sides together pay what one two-side set pays, and one side alone pays half.
 - **The table.** A Strength Level table that already counts one side (single leg press, Bulgarian split squat, cable woodchopper, floor hip abduction) is used as it is. A table for both sides, used for a one-arm version, is halved first so that the logged weight is the weight on that side: the single bicep curl uses the bicep curl anchors halved (19.5 / 30.5 / 44.5 / 61.5 lb at 150 lb), so a 10 lb dumbbell sits where 20 lb combined sits.
 - **Example.** One arm, 10 reps with a 10 lb dumbbell, pays half of a two-arm set of 10 reps with 10 lb in each hand; both arms, 10 reps each, logged as 20, pay the same as the two-arm set.
-- **Which exercises:** single leg press, barbell and dumbbell Bulgarian split squats, cable woodchop, side-lying hip abduction and single bicep curl. Lunges are not included, because Strength Level does not say whether its lunge rep is one step or both legs.
+- **Which exercises:** single leg press, barbell and dumbbell Bulgarian split squats, cable woodchop, side-lying hip abduction, single bicep curl and lunges.
+- **Lunges.** Strength Level does not say how it counts a lunge rep, and its popular workouts mix 3 × 10 with 3 × 20 and 2 × 30. Its reps are read as per leg because the per-step reading is implausible against the squat: a Novice does 26 bodyweight squats but 14 lunge reps, which per step would be 7 per leg, about 4 times the squat's difficulty per leg. Per leg, a lunge is somewhat harder than a squat, as expected with most of the weight on the front leg. Players log every step, so a step pays 3.72 at 150 lb (a squat rep, both legs, pays 4.38).
 
 ## Assisted pull-ups
 
