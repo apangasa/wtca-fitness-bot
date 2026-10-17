@@ -40,6 +40,8 @@ export const DECISIONS = {
   K_PUSHUP: 0.7,
   K_SITUP: 0.678,
   K_FULL: 1.0,
+  // docs/points-lifts.md: a one-side rep (one arm or one leg, logged per side) pays half a rep that works both sides.
+  ONE_SIDE_FACTOR: 0.5,
 };
 
 /** Price per rep at each level's 8-rep weight: ladder / set length = 3.75, 15, 30, 48. */
@@ -88,6 +90,9 @@ export const LIFT_1RM: Record<string, [number, number, number, number]> = {
   dbbulgariansplitsquat: [44, 80, 126, 184], // 22/40/63/92 per dumbbell, doubled
 };
 
+/** Catalog lifts done one leg at a time, each leg's reps logged (docs/points-lifts.md). */
+export const ONE_SIDE_LIFTS = new Set(['singlelegpress', 'barbellbulgariansplitsquat', 'dbbulgariansplitsquat']);
+
 export interface BodyweightSpec {
   kind: 'bw';
   // Price of a rep with no added load at 150 lb.
@@ -102,11 +107,13 @@ export interface BodyweightSpec {
   assist?: boolean;
   // Key into strengthLevelTables.ts; moves the anchors and the flat price with body weight.
   table?: string;
+  // One side at a time, each side's reps logged: every rep pays ONE_SIDE_FACTOR of the curve.
+  oneSide?: boolean;
 }
 
 export type PricingSpec =
   | { kind: 'flat'; p: number; unit?: string; table?: string }
-  | { kind: 'lift'; oneRM: number[]; table?: string }
+  | { kind: 'lift'; oneRM: number[]; table?: string; oneSide?: boolean }
   | BodyweightSpec;
 
 // Pull-ups are anchored on effective 1RMs (body weight + added weight): the reps table shows "<1" at Beginner.
@@ -155,7 +162,7 @@ export function catalogPricing(key: string): PricingSpec | null {
   const bw = BODYWEIGHT[key];
   if (bw) return { ...bw };
   const lift = LIFT_1RM[key];
-  if (lift) return { kind: 'lift', oneRM: [...lift], table: key };
+  if (lift) return { kind: 'lift', oneRM: [...lift], table: key, ...(ONE_SIDE_LIFTS.has(key) ? { oneSide: true } : {}) };
   const flat = FLAT[key];
   if (flat) return { kind: 'flat', p: flat.p, ...(flat.unit ? { unit: flat.unit } : {}), ...(flat.table ? { table: flat.table } : {}) };
   return null;
@@ -244,10 +251,15 @@ export function buildCurve(spec: PricingSpec, bodyLb: number = SCORING.BODY_LB):
       return flatCurve(spec.p * flatFactor(spec.table, bodyLb));
     case 'lift':
       if (spec.oneRM.length !== 4) throw new Error('a lift needs four 1RM anchors');
-      return liftCurve(spec.oneRM, spec.table, bodyLb);
+      return oneSided(liftCurve(spec.oneRM, spec.table, bodyLb), spec.oneSide);
     case 'bw':
-      return bodyweightCurve(spec, bodyLb);
+      return oneSided(bodyweightCurve(spec, bodyLb), spec.oneSide);
   }
+}
+
+/** A one-side exercise pays ONE_SIDE_FACTOR of the curve per rep, so both sides together pay what one rep using both sides pays. */
+function oneSided(curve: Curve, oneSide: boolean | undefined): Curve {
+  return oneSide ? (w) => DECISIONS.ONE_SIDE_FACTOR * curve(w) : curve;
 }
 
 /** Points for an entry: reps x price per rep at the logged weight. Sets at one weight combine exactly. */
@@ -276,6 +288,7 @@ export function pricingProblem(spec: unknown): string | null {
     return `"${String(s.table)}" is not a table in src/strengthLevelTables.ts for a ${s.kind} price`;
   }
   if (s.kind === 'flat') return price(s.p) ? null : `a flat price is a number from 0 to ${MAX_PRICE}`;
+  if (s.oneSide !== undefined && typeof s.oneSide !== 'boolean') return 'oneSide is true or false';
   if (s.kind === 'lift') return anchors(s.oneRM) ? null : 'a lift needs four increasing positive 1RMs (Beginner, Novice, Intermediate, Advanced)';
   if (!price(s.p)) return `a bodyweight price is a number from 0 to ${MAX_PRICE}`;
   if (typeof s.k !== 'number' || !(s.k > 0 && s.k <= MAX_K)) return `k is the share of body weight counted as load: above 0 and at most ${MAX_K}`;
@@ -349,17 +362,18 @@ export function curveForRow(row: PricingRow, bodyLb: number = SCORING.BODY_LB): 
 /** The record stored for an approved exercise, plus the columns that tell the slash command what to ask for. */
 export function pricingColumns(spec: PricingSpec): { json: string; ref: number | null; mode: WeightMode; display: number } {
   const json = JSON.stringify(spec);
+  const side = spec.kind !== 'flat' && spec.oneSide ? DECISIONS.ONE_SIDE_FACTOR : 1;
   switch (spec.kind) {
     case 'flat':
       return { json, ref: null, mode: 'load', display: spec.p };
     case 'lift':
-      return { json, ref: SCORING.EIGHT_REP_FRACTION * spec.oneRM[1]!, mode: 'load', display: ANCHOR_PRICES[1]! };
+      return { json, ref: SCORING.EIGHT_REP_FRACTION * spec.oneRM[1]!, mode: 'load', display: side * ANCHOR_PRICES[1]! };
     case 'bw':
       return {
         json,
         ref: spec.assist ? SCORING.BODY_LB : spec.k * SCORING.BODY_LB,
         mode: spec.assist ? 'assist' : 'add',
-        display: spec.p,
+        display: side * spec.p,
       };
   }
 }

@@ -128,6 +128,7 @@ const bad: [string, string[]][] = [
   ['--bw without --k', ['approve', 'k', '--label', 'X', '--bw', '6', '--reps', '1,2,3,4', '--table', 'dips']],
   ['--bw with both reps and onerm', ['approve', 'k', '--label', 'X', '--bw', '6', '--k', '1', '--reps', '1,2,3,4', '--onerm', '1,2,3,4', '--table', 'dips']],
   ['--assist with a flat price', ['approve', 'k', '--label', 'X', '--flat', '5', '--assist', '--table', 'abrolls']],
+  ['--one-side with a flat price', ['approve', 'k', '--label', 'X', '--flat', '5', '--one-side', '--table', 'abrolls']],
   ['--into on approve', ['approve', 'k', '--label', 'X', '--flat', '5', '--into', 'row', '--table', 'abrolls']],
   ['merge without --into', ['merge', 'k']],
   ['merge with a price', ['merge', 'k', '--into', 'row', '--flat', '5']],
@@ -152,6 +153,13 @@ const good = parseApproveArgs(['approve', 'zz', '--label', 'Cable Row', '--lift'
 check('arguments: a good command parses to exactly what was typed', good.command === 'approve' && good.pricing.kind === 'lift' && good.pricing.table === 'row' && good.newKey === 'cablerow' && good.dryRun && good.note === 'stack' && good.unit === 'reps');
 const g2 = parseApproveArgs(['approve', 'zz', '--label', 'Ring', '--bw', '12', '--k', '1', '--reps', '2,10,20,32', '--assist', '--table', 'dips']);
 check('arguments: --assist and --reps land in the bodyweight record', g2.command === 'approve' && g2.pricing.kind === 'bw' && g2.pricing.assist === true && g2.pricing.reps?.join() === '2,10,20,32');
+const g3 = parseApproveArgs(['approve', 'k', '--label', 'X', '--lift', '19.5,30.5,44.5,61.5', '--one-side', '--table', 'bicepcurls']);
+check('arguments: --one-side lands in the lift record', g3.command === 'approve' && g3.pricing.kind === 'lift' && g3.pricing.oneSide === true);
+{
+  const both = S.buildCurve({ kind: 'lift', oneRM: [39, 61, 89, 123], table: 'bicepcurls' });
+  const one = S.buildCurve({ kind: 'lift', oneRM: [19.5, 30.5, 44.5, 61.5], table: 'bicepcurls', oneSide: true });
+  check('scoring: one arm at 10 lb pays half a two-arm rep at 20 lb combined', Math.abs(one(10) - both(20) / 2) < 1e-12);
+}
 
 // --- the script end to end ---
 const noTable = cli(['approve', 'zzcli', '--label', 'Zz cli', '--flat', '3']);

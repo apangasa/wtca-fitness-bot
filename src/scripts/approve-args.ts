@@ -6,7 +6,8 @@ import type { BodyweightSpec, PricingSpec } from '../scoring.js';
 
 export const APPROVE_USAGE =
   'usage: approve <key> --label "Name" (--flat <p> [--unit mi|yd|flights] | --lift <b,n,i,a> | --bw <p> --k <share> (--reps <b,n,i,a> | --onerm <b,n,i,a>) [--assist])\n' +
-  '                    --table <key> [--note "..."] [--as <new-key>] [--dry-run]\n' +
+  '                    --table <key> [--one-side] [--note "..."] [--as <new-key>] [--dry-run]\n' +
+  '--one-side (lift or bw): done one arm or leg at a time with each side\'s reps logged; every rep pays half.\n' +
   '       merge <key> --into <existing-key> [--dry-run]\n' +
   '--table is the exercise\'s by-bodyweight table in src/strengthLevelTables.ts and is required (only --flat 0, or a cardio price with --unit, may go without).\n' +
   '--dry-run runs it, shows how every total moves, and rolls it back.';
@@ -33,6 +34,7 @@ const OPTIONS = {
   reps: { type: 'string' },
   onerm: { type: 'string' },
   assist: { type: 'boolean' },
+  'one-side': { type: 'boolean' },
   unit: { type: 'string' },
   table: { type: 'string' },
   note: { type: 'string' },
@@ -75,7 +77,7 @@ export function parseApproveArgs(argv: string[]): ApproveCommand {
     return { command, key, into: values.into, dryRun };
   }
 
-  only(['label', 'flat', 'lift', 'bw', 'k', 'reps', 'onerm', 'assist', 'unit', 'table', 'note', 'as', 'dry-run']);
+  only(['label', 'flat', 'lift', 'bw', 'k', 'reps', 'onerm', 'assist', 'one-side', 'unit', 'table', 'note', 'as', 'dry-run']);
   if (!values.label?.trim()) throw new Error('--label "Name" is required');
   const kinds = (['flat', 'lift', 'bw'] as const).filter((n) => values[n] !== undefined);
   if (kinds.length !== 1) throw new Error('give exactly one of --flat, --lift or --bw');
@@ -85,16 +87,18 @@ export function parseApproveArgs(argv: string[]): ApproveCommand {
     only(['label', 'flat', 'unit', 'table', 'note', 'as', 'dry-run']);
     pricing = { kind: 'flat', p: number('flat', values.flat!) };
   } else if (kinds[0] === 'lift') {
-    only(['label', 'lift', 'table', 'note', 'as', 'dry-run']);
+    only(['label', 'lift', 'one-side', 'table', 'note', 'as', 'dry-run']);
     pricing = { kind: 'lift', oneRM: list4('lift', values.lift!) };
+    if (values['one-side']) pricing.oneSide = true;
   } else {
-    only(['label', 'bw', 'k', 'reps', 'onerm', 'assist', 'table', 'note', 'as', 'dry-run']);
+    only(['label', 'bw', 'k', 'reps', 'onerm', 'assist', 'one-side', 'table', 'note', 'as', 'dry-run']);
     if (values.k === undefined) throw new Error('--k <share> is required with --bw');
     if ((values.reps === undefined) === (values.onerm === undefined)) throw new Error('--bw needs exactly one of --reps or --onerm');
     const spec: BodyweightSpec = { kind: 'bw', p: number('bw', values.bw!), k: number('k', values.k) };
     if (values.reps !== undefined) spec.reps = list4('reps', values.reps);
     if (values.onerm !== undefined) spec.oneRM = list4('onerm', values.onerm);
     if (values.assist) spec.assist = true;
+    if (values['one-side']) spec.oneSide = true;
     pricing = spec;
   }
   if (values.table !== undefined) {

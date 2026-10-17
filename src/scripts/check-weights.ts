@@ -63,7 +63,7 @@ if (reopen) {
   check('reopen: a curve tuned in the database survives a restart', JSON.stringify(bench.pricing) === JSON.stringify({ kind: 'lift', oneRM: [100, 140, 190, 240] }), JSON.stringify(bench.pricing));
   check('reopen: a hand-set run price is not put back to 521 by the migration', q.getExercise('run')!.pricing?.kind === 'flat' && (q.getExercise('run')!.pricing as { p: number }).p === 777);
   check('reopen: burpees tuned to 11 are not repriced again', (q.getExercise('burpees')!.pricing as { p: number }).p === 11);
-  check('reopen: the migration did not run again (user_version 11, an unusable record is not repaired behind your back)', userVersion() === 11 && q.getExercise('abrolls')!.pricing === null);
+  check('reopen: the migration did not run again (user_version 12, an unusable record is not repaired behind your back)', userVersion() === 12 && q.getExercise('abrolls')!.pricing === null);
   const machineRe = q.getExercise('machinelatpulldown')!;
   check('reopen: migration 9 moved the live-style machine lat pulldown record from the doubled to the x1.5 anchors (and its reference weight)', machineRe.pricing?.kind === 'lift' && machineRe.pricing.oneRM.join() === '133.5,186,249,322.5' && machineRe.refWeight !== null && near(machineRe.refWeight, (29 / 36) * 186, 1e-9), JSON.stringify(machineRe));
   check('reopen: nothing was duplicated', q.listExercises().filter((e) => e.key === 'benchpress').length === 1);
@@ -124,7 +124,7 @@ const oldRun = q.dayTotals(GUILD, '2026-09-12').find((t) => t.exerciseKey === 'r
 check('the 3-mile run logged before was backfilled to 3 x 521.14', !!oldRun && near(oldRun.points, 3 * RUN), String(oldRun?.points));
 const swimEx = q.getExercise('swim');
 check('swim exists at 1.0286 per yard', swimEx?.pricing?.kind === 'flat' && near(swimEx.pricing.p, SWIM) && swimEx.unit === 'yd', JSON.stringify(swimEx));
-check('the one-shot upgrades are recorded (user_version 11)', userVersion() === 11);
+check('the one-shot upgrades are recorded (user_version 12)', userVersion() === 12);
 const machineLat = q.getExercise('machinelatpulldown')!;
 check('machine lat pulldown is seeded as a lift on the lat pulldown anchors x1.5 and its own table', machineLat.label === 'Machine Lat Pulldown' && machineLat.pricing?.kind === 'lift' && machineLat.pricing.table === 'machinelatpulldown' && machineLat.pricing.oneRM.join() === '133.5,186,249,322.5' && machineLat.refWeight !== null, JSON.stringify(machineLat));
 check('a stack setting of 1.5w on the machine lat pulldown pays what w pays on the plain lat pulldown, at 150 lb and at 220 lb', [150, 220].every((bw) => [50, 72.5, 90, 100].every((w) => near(buildCurve(catalogPricing('machinelatpulldown')!, bw)(1.5 * w), buildCurve(catalogPricing('latpulldown')!, bw)(w), 1e-9))));

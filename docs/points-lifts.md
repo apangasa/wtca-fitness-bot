@@ -74,14 +74,23 @@ Segment masses: Winter, *Biomechanics and Motor Control of Human Movement*, Tabl
 
 For bars above about 124 lb this is lower than the barbell table would give (185 lb: 21.8 against 34.1). The heaviest logged squat bar is 105 lb.
 
-**Side-lying hip abduction** (`/sidelyinghipabduction`, decided 2026-10-17). Strength Level's floor hip abduction reps table (men, 150 lb row <1 / 9 / 27 / 50, read 2026-10-17, [source](https://strengthlevel.com/strength-standards/floor-hip-abduction/lb); "<1" read as 1) gives a flat price of 11.11 (implied 13.33 / 8.89). One rep is one leg's rep, and the weight is the ankle weight on that leg.
+**Side-lying hip abduction** (`/sidelyinghipabduction`, decided 2026-10-17). Strength Level's floor hip abduction reps table (men, 150 lb row <1 / 9 / 27 / 50, read 2026-10-17, [source](https://strengthlevel.com/strength-standards/floor-hip-abduction/lb); "<1" read as 1) gives a flat price of 11.11 (implied 13.33 / 8.89). One rep is one leg's rep, and the weight is the ankle weight on that leg. It is a [one-side exercise](#one-side-exercises), so each rep pays half the curve.
 
 | Ankle weight | 0 | 5 lb | 8 lb | 10 lb | 15 lb | 20 lb |
 |---|---|---|---|---|---|---|
-| Price per rep (150 lb) | 11.1 | 18.0 | 21.5 | 24.0 | 30.0 | 35.4 |
+| Price per rep (150 lb) | 5.6 | 9.0 | 10.7 | 12.0 | 15.0 | 17.7 |
 
 - **Why not count leverage.** An ankle weight sits further from the hip than the leg's centre of mass (0.447 of the hip-to-ankle length, Winter), so by torque the leg is worth only 0.161 × 0.447 = 0.072 of body weight in ankle pounds. Checked against logged sets, that k placed this exercise 1.5 to 2 levels above the same lifter's other lifts, so it overpays.
 - **What reps to failure imply.** About 20 reps per leg with no weight and about 12 with 8 lb reconcile only at k ≈ 0.34, above the leg's whole mass, which suggests the reps-to-1RM conversion overstates small loads at high reps. Those are two rough estimates, so 0.161, the largest physically sourced value, is used. Fresh maximum sets with and without the ankle weight would let k be fitted.
+
+## One-side exercises
+
+Some exercises work one arm or one leg at a time, and players log every side's reps: 10 reps on each leg is logged as 20. **Each of those reps pays half the curve** (`oneSide` in the pricing record, `--one-side` when approving; decided 2026-10-17).
+
+- **Why half.** Prices are set so that an all-out set using both sides pays the ladder (a two-arm curl, a push-up, a bench press). A one-side rep is half that work, so both sides together pay what one two-side set pays, and one side alone pays half.
+- **The table.** A Strength Level table that already counts one side (single leg press, Bulgarian split squat, cable woodchopper, floor hip abduction) is used as it is. A table for both sides, used for a one-arm version, is halved first so that the logged weight is the weight on that side: the single bicep curl uses the bicep curl anchors halved (19.5 / 30.5 / 44.5 / 61.5 lb at 150 lb), so a 10 lb dumbbell sits where 20 lb combined sits.
+- **Example.** One arm, 10 reps with a 10 lb dumbbell, pays half of a two-arm set of 10 reps with 10 lb in each hand; both arms, 10 reps each, logged as 20, pay the same as the two-arm set.
+- **Which exercises:** single leg press, barbell and dumbbell Bulgarian split squats, cable woodchop, side-lying hip abduction and single bicep curl. Lunges are not included, because Strength Level does not say whether its lunge rep is one step or both legs.
 
 ## Assisted pull-ups
 

@@ -19,6 +19,7 @@ An entry stores an exercise, total reps (or a distance), an optional weight and 
 - **Weighted lifts** pay a price per rep that depends on the weight lifted. Heavier weights pay more than in proportion, because heavier weights are rarer.
 - **Weighted bodyweight exercises** (an added load, or an assisted pull-up) follow the lift curve, with body weight counted as part of the load.
 - **Cardio** pays per mile (run) or per yard (swim).
+- **One-side exercises** (one arm or one leg at a time, every side's reps logged) pay half per rep, so both sides together pay what a set using both sides pays ([points-lifts.md](points-lifts.md#one-side-exercises)).
 - **Sets at one weight combine:** 3 sets of 8 pay exactly what 24 reps at that weight pay. Sets at different weights are separate logs.
 - **Closed seasons are frozen** in `season_standings`. A price change never rewrites a trophy; it only changes running totals and career points.
 

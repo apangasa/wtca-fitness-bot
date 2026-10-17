@@ -305,6 +305,24 @@ function migrateAfterSeed(conn: Database.Database): void {
     conn.pragma('user_version = 11');
     invalidateScoring();
   }
+  if (version < 12) {
+    // Migration 12: exercises done one side at a time, logged per side, pay half per rep (docs/points-lifts.md). The keys are fixed
+    // here; each live record keeps its tuned numbers and only gains oneSide.
+    const rows = conn
+      .prepare(`SELECT key, pricing FROM exercises WHERE key IN ('singlelegpress', 'barbellbulgariansplitsquat', 'dbbulgariansplitsquat', 'woodchops', 'sidelyinghipabduction')`)
+      .all() as { key: string; pricing: string | null }[];
+    const set = conn.prepare('UPDATE exercises SET pricing = ?, points_per_rep = ? WHERE key = ?');
+    conn.transaction(() => {
+      for (const row of rows) {
+        const spec = parsePricing(row.pricing);
+        if (!spec || spec.kind === 'flat' || spec.oneSide) continue;
+        const cols = pricingColumns({ ...spec, oneSide: true });
+        set.run(cols.json, cols.display, row.key);
+      }
+    })();
+    conn.pragma('user_version = 12');
+    invalidateScoring();
+  }
 }
 
 function seedExercises(conn: Database.Database): void {
