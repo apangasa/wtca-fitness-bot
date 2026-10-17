@@ -81,6 +81,7 @@ export const SEED_EXERCISES: ExerciseSeed[] = [
   // Kneeling rope cable crunch only; ab machines need their own lift.
   { key: 'cablecrunch', label: 'Cable Crunch', unit: 'reps', weightNote: 'cable stack setting' },
   { key: 'dbrdl', label: 'DB Romanian Deadlift', unit: 'reps', weightNote: 'both dumbbells combined' },
+  { key: 'barbellpreachercurl', label: 'Barbell Preacher Curl', unit: 'reps', weightNote: 'bar + plates' },
 ];
 
 /** A lift cannot be scored without a weight; squats are the exception (none = bodyweight). */

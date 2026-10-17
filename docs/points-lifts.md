@@ -125,6 +125,8 @@ Romanian deadlift is two lifts for the same reason (150 lb row): `/rdl` is the b
 
 The machine tricep extension (`/machinetricepextensions`) is priced from Strength Level's machine tricep extension table (150 lb row 58 / 96 / 145 / 204), not the tricep extension table, which is a different exercise (barbell or dumbbell, not a seated stack machine). The chest press (`/chestpress`) is priced from Strength Level's chest press table (150 lb row 70 / 114 / 172 / 242). Strength Level has one machine chest press entry and no separate converging or lever one, so a converging chest press is logged there as the closest match; both weights are the stack setting or the plates loaded.
 
+Preacher curl is two lifts: `/barbellpreachercurl` is priced from Strength Level's preacher curl table (men, 1RM with the bar, 150 lb row 37 / 59 / 87 / 120 lb, read 2026-10-17, [source](https://strengthlevel.com/strength-standards/preacher-curl/lb)), and `/dumbbellpreachercurl` from its dumbbell preacher curl table, combined.
+
 The good morning (`/goodmorning`) is priced from Strength Level's good morning table (men, 1RM, 150 lb row 47 / 91 / 152 / 230 lb, read 2026-10-12, [source](https://strengthlevel.com/strength-standards/good-morning/lb)).
 
 The cable woodchop (`/woodchops`) is priced from Strength Level's cable woodchopper table (men, 1RM, 150 lb row 13 / 36 / 73 / 122 lb, read 2026-10-12, [source](https://strengthlevel.com/strength-standards/cable-woodchopper/lb)). The weight is the stack setting.

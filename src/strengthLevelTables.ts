@@ -313,6 +313,29 @@ export const LIFT_TABLES: Record<string, Row[]> = {
 74/105/144/188
 77/108/147/192
 79/111/151/196`)),
+  // Strength Level's preacher curl (men), read 2026-10-17: 1RM with the bar (its dumbbell preacher curl is a separate page).
+  barbellpreachercurl: parse(`
+24/42/66/95
+27/46/71/102
+31/50/77/108
+34/55/82/114
+37/59/87/120
+40/62/91/125
+43/66/96/131
+46/70/100/136
+49/73/104/141
+52/77/108/145
+54/80/112/150
+57/83/116/154
+60/86/120/159
+62/90/123/163
+65/93/127/167
+67/95/130/171
+70/98/134/175
+72/101/137/178
+74/104/140/182
+77/107/143/186
+79/109/146/189`),
   // Barbell curl table (the bot's bicep curls are "dumbbells combined, or the bar").
   bicepcurls: parse(`
 24/42/66/95

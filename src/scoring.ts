@@ -72,6 +72,7 @@ export const LIFT_1RM: Record<string, [number, number, number, number]> = {
   deadlift: [160, 220, 293, 377],
   rdl: [115, 168, 235, 313],
   dbrdl: [66, 110, 166, 236], // 33/55/83/118 per dumbbell, doubled
+  barbellpreachercurl: [37, 59, 87, 120], // preacher curl table, with the bar
   bicepcurls: [39, 61, 89, 123], // barbell curl table
   hammercurls: [36, 60, 90, 126],
   facepulls: [27, 53, 90, 137],
