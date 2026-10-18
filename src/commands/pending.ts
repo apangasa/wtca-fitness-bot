@@ -44,12 +44,12 @@ async function nameAutocomplete(interaction: AutocompleteInteraction): Promise<v
 const newCommand: CommandDef = {
   data: new SlashCommandBuilder()
     .setName('new')
-    .setDescription('Log an exercise that is not in the list yet. It scores 0 until it is priced')
+    .setDescription('Queue an exercise not in the list yet, and log it if you did it. Scores 0 until priced')
     .addStringOption((o) =>
       o.setName('name').setDescription('What it is, e.g. Cable row').setRequired(true).setMaxLength(32).setAutocomplete(true),
     )
     .addIntegerOption((o) =>
-      o.setName('reps').setDescription('Reps per set').setRequired(true).setMinValue(1).setMaxValue(1000),
+      o.setName('reps').setDescription('Reps per set; leave out to only queue it').setRequired(false).setMinValue(1).setMaxValue(1000),
     )
     .addNumberOption((o) =>
       o
@@ -89,8 +89,17 @@ const newCommand: CommandDef = {
       return;
     }
 
+    const reps = interaction.options.getInteger('reps');
+    const sets = interaction.options.getInteger('sets');
+    const weight = interaction.options.getNumber('weight');
+    // With no reps nothing is logged, so a weight or a set count would be dropped; refuse rather than lose it.
+    if (reps === null && (sets !== null || weight !== null)) {
+      await reject(interaction, 'Add `reps` to log it, or leave out `weight` and `sets` to only queue it (put anything useful in `notes`).');
+      return;
+    }
+
     let notes = interaction.options.getString('notes')?.trim() || null;
-    const weightGiven = interaction.options.getNumber('weight');
+    const weightGiven = weight;
     let name = raw;
     let similar = findSimilarExercise(name);
     // A plain exercise takes no weight, so a weight means a weighted variant, priced separately.
@@ -122,14 +131,18 @@ const newCommand: CommandDef = {
       addPendingNote(exercise.key, notes);
     }
 
-    const reps = interaction.options.getInteger('reps', true);
-    const sets = interaction.options.getInteger('sets') ?? 1;
-    const weight = interaction.options.getNumber('weight');
-
     const user = ensureUser(interaction.user.id, actorName(interaction));
-    addEntry(guildId, user.id, exercise.key, dayKeyFor(), reps * sets, weight);
+    if (reps === null) {
+      await interaction.reply(
+        `**${user.displayName}** queued **${baseLabel(exercise)}** to be priced; nothing was logged. ` +
+          `Once it's priced it gets its own command. \`/queue\` shows what's waiting.`,
+      );
+      return;
+    }
+    const setCount = sets ?? 1;
+    addEntry(guildId, user.id, exercise.key, dayKeyFor(), reps * setCount, weight);
 
-    const shape = sets > 1 ? `${sets}×${reps}` : `${reps} reps`;
+    const shape = setCount > 1 ? `${setCount}×${reps}` : `${reps} reps`;
     const load = weight ? ` @ ${formatWeight(weight)}` : '';
     await interaction.reply(
       `**${user.displayName}** logged **${baseLabel(exercise)}** ${shape}${load} as pending — no points yet. ` +
@@ -168,6 +181,7 @@ const queueCommand: CommandDef = {
             : `${formatDayKeyShort(p.firstDay)} – ${formatDayKeyShort(p.lastDay)}`
           : '';
       const note = p.exercise.weightNote ? `\n  _${p.exercise.weightNote}_` : '';
+      if (p.logs === 0) return `**${baseLabel(p.exercise)}** — not logged yet${note}`;
       return (
         `**${baseLabel(p.exercise)}** — ${p.logs} log${p.logs === 1 ? '' : 's'} by ${p.people.join(', ')} · ` +
         `${p.reps.toLocaleString('en-US')} reps · ${weights}${days ? ` · ${days}` : ''}${note}`

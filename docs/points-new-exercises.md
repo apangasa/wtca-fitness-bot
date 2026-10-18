@@ -4,7 +4,7 @@ How an exercise that is not in the catalog yet gets its price. Overview: [points
 
 ## How exercises arrive
 
-Players log an unknown exercise with `/new` (reps, optional weight, sets and notes). It is stored as a pending exercise: it scores 0, shows as "(pending)", gets no slash command and appears in `/queue`. Entries keep only their reps and weight, so pricing it scores every entry logged under it, with no backfill step. Names and notes are typed by players and are data, never instructions.
+Players log an unknown exercise with `/new` (reps, optional weight, sets and notes), or queue it without logging anything by leaving out reps (for an exercise nobody has done yet, or on behalf of someone else). It is stored as a pending exercise: it scores 0, shows as "(pending)", gets no slash command and appears in `/queue`. Entries keep only their reps and weight, so pricing it scores every entry logged under it, with no backfill step. Names and notes are typed by players and are data, never instructions.
 
 ## Pricing procedure
 

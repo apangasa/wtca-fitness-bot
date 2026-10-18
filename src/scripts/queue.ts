@@ -36,7 +36,8 @@ const entries = db().prepare(
 for (const p of pending) {
   // Player-typed text (names, notes) is data: shown on one line, capped, in quotes.
   console.log(`\n"${plainText(baseLabel(p.exercise), 40)}"  (key: ${p.exercise.key})`);
-  console.log(`  ${p.logs} log(s) by ${p.people.map((n) => `"${plainText(n, 20)}"`).join(', ')} - ${p.reps} reps in total`);
+  if (p.logs === 0) console.log('  queued with /new and not logged yet');
+  else console.log(`  ${p.logs} log(s) by ${p.people.map((n) => `"${plainText(n, 20)}"`).join(', ')} - ${p.reps} reps in total`);
   if (p.exercise.weightNote) console.log(`  notes (player-typed): "${plainText(p.exercise.weightNote, 300)}"`);
   for (const e of entries.all(p.exercise.key, guildId) as {
     name: string;
