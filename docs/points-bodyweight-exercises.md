@@ -85,6 +85,14 @@ The exercise is a kneeling rollout on an elbow-support roller, with the forearms
 - **Cross-check.** The lever-arm ratio from Winter's segment lengths (upper arm 0.19 × height against a full arm 0.44) is 0.43, which would give 6.1. The range is 6.1 to 9.1, and the measured figure is used.
 - **Assumption.** Price scales in proportion to the demand per rep.
 
+## Knee push-up: 2.34
+
+`/kneepushups` (decided 2026-10-17). Strength Level has no knee push-up table, so a rep is priced on the push-up curve at the knee push-up's load.
+
+- **The load.** [Ebben et al., J Strength Cond Res, 2011](https://journals.lww.com/nsca-jscr/Fulltext/2011/10000/Kinetic_Analysis_of_Several_Variations_of_Push_Ups.31.aspx) measured peak ground reaction force at the hands of 64% of body weight in a regular push-up and 49% in a knee push-up (figures from the abstract and [Contreras et al.'s review](https://bretcontreras.com/wp-content/uploads/The-Biomechanics-of-the-Push-up-Implications-for-Resistance-Training-Programs.pdf)). The push-up's k of 0.70 ([points-lifts.md](points-lifts.md)) × 49/64 is 80.4 lb at 150 lb.
+- **The price.** The push-up curve (reps 5 / 20 / 40 / 64, scaled so a push-up pays 6) at 80.4 lb pays 2.34, as an assisted pull-up sits on the pull-up curve. It is a flat price on the push-up table, so it follows the person's push-up row (2.36 at 125 lb).
+- **Cross-check.** Turning the load into reps to failure (about 35 at Novice and 61 at Intermediate) and pricing those like any bodyweight table gives 3.7. The curve is used, matching assisted pull-ups.
+
 ## Activities that earn no points
 
 Trivial activities earn no points. They can be logged for tracking, case by case. The ankle alphabet is tracked at 0. Stairs is not in this group: it is cardio, priced per flight ([points-cardio.md](points-cardio.md)).
