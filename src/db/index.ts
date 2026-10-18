@@ -334,6 +334,28 @@ function migrateAfterSeed(conn: Database.Database): void {
     conn.pragma('user_version = 13');
     invalidateScoring();
   }
+  if (version < 14) {
+    // Migration 14: singlelegextension becomes singlecablelegextension (it is the cable lift; a machine one would use the machine table).
+    // Copies the whole row (the key is a foreign key target), repoints the entries, drops the old row.
+    const from = 'singlelegextension';
+    const to = 'singlecablelegextension';
+    const exists = (k: string): boolean => conn.prepare('SELECT 1 FROM exercises WHERE key = ?').get(k) !== undefined;
+    if (exists(from) && !exists(to)) {
+      conn.transaction(() => {
+        conn
+          .prepare(
+            `INSERT INTO exercises (key, label, unit, sort_order, active, points_per_rep, ref_weight, weight_mode, weight_note, pending, pricing)
+             SELECT ?, 'Single Cable Leg Extension', unit, sort_order, active, points_per_rep, ref_weight, weight_mode, weight_note, pending, pricing
+             FROM exercises WHERE key = ?`,
+          )
+          .run(to, from);
+        conn.prepare('UPDATE entries SET exercise_key = ? WHERE exercise_key = ?').run(to, from);
+        conn.prepare('DELETE FROM exercises WHERE key = ?').run(from);
+      })();
+    }
+    conn.pragma('user_version = 14');
+    invalidateScoring();
+  }
 }
 
 function seedExercises(conn: Database.Database): void {

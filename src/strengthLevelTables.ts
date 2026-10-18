@@ -313,7 +313,7 @@ export const LIFT_TABLES: Record<string, Row[]> = {
 74/105/144/188
 77/108/147/192
 79/111/151/196`)),
-  // Strength Level's cable leg extension (men), read 2026-10-17: 1RM stack setting, read as both legs; prices singlelegextension with the anchors halved.
+  // Strength Level's cable leg extension (men), read 2026-10-17: 1RM stack setting, read as both legs; prices singlecablelegextension with the anchors halved.
   cablelegextension: parse(`
 38/82/146/228
 42/88/154/238
