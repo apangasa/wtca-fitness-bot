@@ -313,6 +313,29 @@ export const LIFT_TABLES: Record<string, Row[]> = {
 74/105/144/188
 77/108/147/192
 79/111/151/196`)),
+  // Strength Level's cable leg extension (men), read 2026-10-17: 1RM stack setting, read as both legs; prices singlelegextension with the anchors halved.
+  cablelegextension: parse(`
+38/82/146/228
+42/88/154/238
+46/93/161/247
+50/99/168/256
+53/104/175/264
+57/109/181/272
+61/114/188/280
+64/119/194/287
+67/123/199/294
+70/127/205/300
+74/131/210/307
+77/135/215/313
+79/139/220/319
+82/143/225/325
+85/147/229/330
+88/150/234/336
+91/154/238/341
+93/157/242/346
+96/161/246/351
+98/164/250/355
+101/167/254/360`),
   // Strength Level's preacher curl (men), read 2026-10-17: 1RM with the bar (its dumbbell preacher curl is a separate page).
   barbellpreachercurl: parse(`
 24/42/66/95

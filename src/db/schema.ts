@@ -150,13 +150,13 @@ DROP TRIGGER IF EXISTS user_weight_log_append_update;
 DROP TRIGGER IF EXISTS user_weight_log_append_delete;
 
 CREATE TRIGGER exercises_check_insert BEFORE INSERT ON exercises
-WHEN NEW.unit NOT IN ('reps','mi','km','yd','m','min','flights')
+WHEN NEW.unit NOT IN ('reps','mi','km','yd','m','min','flights','jumps')
   OR NEW.weight_mode NOT IN ('load','add','assist')
   OR (NEW.pricing IS NOT NULL AND NOT json_valid(NEW.pricing))
 BEGIN SELECT RAISE(ABORT, 'exercises: unit, weight_mode or pricing is not valid'); END;
 
 CREATE TRIGGER exercises_check_update BEFORE UPDATE ON exercises
-WHEN NEW.unit NOT IN ('reps','mi','km','yd','m','min','flights')
+WHEN NEW.unit NOT IN ('reps','mi','km','yd','m','min','flights','jumps')
   OR NEW.weight_mode NOT IN ('load','add','assist')
   OR (NEW.pricing IS NOT NULL AND NOT json_valid(NEW.pricing))
 BEGIN SELECT RAISE(ABORT, 'exercises: unit, weight_mode or pricing is not valid'); END;

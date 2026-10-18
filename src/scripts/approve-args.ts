@@ -5,7 +5,7 @@ import { APPROVE_UNITS, type Unit } from '../exercises.js';
 import type { BodyweightSpec, PricingSpec } from '../scoring.js';
 
 export const APPROVE_USAGE =
-  'usage: approve <key> --label "Name" (--flat <p> [--unit mi|yd|flights] | --lift <b,n,i,a> | --bw <p> --k <share> (--reps <b,n,i,a> | --onerm <b,n,i,a>) [--assist])\n' +
+  'usage: approve <key> --label "Name" (--flat <p> [--unit mi|yd|flights|jumps] | --lift <b,n,i,a> | --bw <p> --k <share> (--reps <b,n,i,a> | --onerm <b,n,i,a>) [--assist])\n' +
   '                    --table <key> [--one-side] [--note "..."] [--as <new-key>] [--dry-run]\n' +
   '--one-side (lift or bw): done one arm or leg at a time with each side\'s reps logged; every rep pays half.\n' +
   '       merge <key> --into <existing-key> [--dry-run]\n' +

@@ -36,7 +36,7 @@ node dist/scripts/approve-exercise.js approve <key> --label "Ring Dip" --bw 12 -
 # the key players typed is the queued key (tricepsextensions); --as gives the exercise, and so its slash command, a better one
 node dist/scripts/approve-exercise.js approve tricepsextensions --label "Machine Tricep Extension" --lift 58,96,145,204 --table machinetricepextensions --as machinetricepextension
 
-# cardio has no by-bodyweight table: a flat price per mile, yard or flight with --unit
+# cardio has no by-bodyweight table: a flat price per mile, yard, flight or jump with --unit
 node dist/scripts/approve-exercise.js approve <key> --label "Rowing" --flat 90 --unit yd
 
 # fold it into an existing exercise instead (same unit; weighted entries need a weighted target)

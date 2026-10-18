@@ -52,6 +52,15 @@ Stairs at 8.8 METs cost nearly as much a minute as the reference run pace (about
 - **Sources.** [Bassett et al. 1997, energy cost of stair climbing](https://pubmed.ncbi.nlm.nih.gov/9309638/); [PLOS ONE 2012, stair climbing at 8.5 to 10.4 kcal a minute](https://pmc.ncbi.nlm.nih.gov/articles/PMC3520986); METs from the [Compendium of Physical Activities](https://pacompendium.com/older-adult-compendium/) and [Omni Calculator](https://omnicalculator.com/sports/stairs-calorie); time per floor from a [hospital stair-use study](https://english.ahram.org.eg/News/29195.aspx), read through a search summary.
 - **Priced 2026-10-11.** The flight of stairs queue entries were moved onto stairs, so all earlier flights score at 10.
 
+## Jump rope: cardio, 0.58 points per jump
+
+`/jumprope`, decided 2026-10-17, counted in **jumps** (the `jumps` unit), a flat price for everyone with no table, like stairs.
+
+- **The price.** The Compendium rates rope jumping at a moderate pace, 100 to 120 skips a minute with a two-foot bounce, at 11.8 METs (code 15551). At 110 a minute that is 11.8 × 68 kg ÷ 60 = 13.4 kcal a minute, 0.122 kcal a jump, × 4.76 points a kcal (the run's 521 a mile over about 109 kcal) = **0.58**. A minute of moderate skipping pays about 64, a little above the run's 51 a minute, as 11.8 METs is above the reference run's 9.8.
+- **The range.** 100 a minute gives 0.64 and 120 gives 0.53; slow skipping (under 100 a minute, 8.3 METs) at 90 gives 0.50; fast skipping (12.3 METs, from memory) at 140 gives 0.47. The price is flat, so pace is not distinguished.
+- **Sources.** [2011 Compendium of Physical Activities](https://cdn-links.lww.com/permalink/mss/a/mss_43_8_2011_06_13_ainsworth_202093_sdc1.pdf), read through a search summary.
+- **Guard.** A single entry is capped at 20,000 jumps.
+
 ## Figures that follow
 
 | Effort | Points |
@@ -61,6 +70,7 @@ Stairs at 8.8 METs cost nearly as much a minute as the reference run pace (about
 | 1,000 yd swim | 1,029 |
 | 1,760 yd swim (a true mile) | 1,810 |
 | 1 flight of stairs | 10 |
+| 100 jumps of rope | 58 |
 
 ## Guards
 

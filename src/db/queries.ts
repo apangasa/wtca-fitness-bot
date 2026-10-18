@@ -313,7 +313,7 @@ export interface ApproveSpec {
   note?: string | null;
   // The key (and so the slash command) the exercise ends up with; players type the queued key, so it is often not the one wanted.
   newKey?: string;
-  // What the exercise counts when it is not reps (a cardio unit): only a flat price can be per mile, yard or flight.
+  // What the exercise counts when it is not reps (a cardio unit): only a flat price can be per mile, yard, flight or jump.
   unit?: Unit;
 }
 
@@ -325,10 +325,10 @@ export const KEY_PATTERN = /^[a-z0-9-]{1,32}$/;
  * The one place a pricing record is written for a queued exercise, so every rule is enforced here and not only in the script.
  */
 export function approveExercise(key: string, spec: ApproveSpec): ExerciseRow | null {
-  // A cardio price is quoted per mile, yard or flight and has no by-bodyweight table (cardio does not follow body weight); everything else does.
+  // A cardio price is quoted per mile, yard, flight or jump and has no by-bodyweight table (cardio does not follow body weight); everything else does.
   const unit = spec.unit ?? 'reps';
   if (!APPROVE_UNITS.includes(unit)) throw new Error(`unit must be one of ${APPROVE_UNITS.join(', ')}`);
-  if (unit !== 'reps' && spec.pricing.kind !== 'flat') throw new Error('only a flat price can be per mile, yard or flight');
+  if (unit !== 'reps' && spec.pricing.kind !== 'flat') throw new Error('only a flat price can be per mile, yard, flight or jump');
   const problem = unit !== 'reps' && spec.pricing.kind === 'flat' && spec.pricing.table === undefined && spec.pricing.p > 0
     ? null
     : approvalProblem(spec.pricing);

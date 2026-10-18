@@ -67,6 +67,7 @@ const flights = q.approveExercise('zzstairs', { label: 'Zz stairs', pricing: { k
 check('a cardio price per flight is approvable with no table and the exercise counts flights', flights?.unit === 'flights' && q.priceAt(flights, null) === 9);
 check('flights are not reps: they stay out of the reps total', !q.listExercises().filter((e) => e.unit === 'reps').some((e) => e.key === 'zzstairs'));
 check('flights read as flights', S_format(1) === '1 flight' && S_format(4) === '4 flights');
+check('jumps read as jumps', formatAmount(1, 'jumps') === '1 jump' && formatAmount(1500, 'jumps') === '1,500 jumps');
 q.createPendingExercise('zzswim', 'Zz swim');
 const dist = q.approveExercise('zzswim', { label: 'Zz swim', pricing: { kind: 'flat', p: 1.2 }, unit: 'yd' });
 check('a flat price per yard is approvable and the exercise counts yards', dist?.unit === 'yd' && q.priceAt(dist, null) === 1.2);
