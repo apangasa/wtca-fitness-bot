@@ -141,6 +141,8 @@ The incline bench press (`/inclinebenchpress`) is the barbell lift, priced from 
 
 The pec deck (`/pecdeck`) is priced from Strength Level's machine chest fly table (men, 1RM, 150 lb row 76 / 117 / 169 / 231 lb, read 2026-10-20, [source](https://strengthlevel.com/strength-standards/machine-chest-fly/lb)), not the cable fly table (12 / 34 / 67 / 112), which is a different movement. The weight is the stack setting.
 
+The EZ bar curl (`/ezbarcurl`) is priced from Strength Level's EZ bar curl table (men, 1RM with the bar, 150 lb row 46 / 65 / 90 / 118 lb, read 2026-10-20, [source](https://strengthlevel.com/strength-standards/ez-bar-curl/lb)), a little above the barbell curl table that `/bicepcurls` uses (39 / 61 / 89 / 123) at the bottom and a little below at the top. The weight is bar plus plates.
+
 The 1RM tables used (Beginner / Novice / Intermediate / Advanced, men at 150 lb; dumbbell lifts in the combined convention) are in `src/strengthLevelTables.ts` with their source and read date.
 
 ## Limits

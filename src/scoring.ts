@@ -91,6 +91,7 @@ export const LIFT_1RM: Record<string, [number, number, number, number]> = {
   dbbulgariansplitsquat: [44, 80, 126, 184], // 22/40/63/92 per dumbbell, doubled
   singlearmdbrow: [33, 54, 81, 113], // dumbbell row table: one arm, one dumbbell, not doubled
   pecdeck: [76, 117, 169, 231], // machine chest fly table (stack setting)
+  ezbarcurl: [46, 65, 90, 118], // EZ bar curl table, with the bar
 };
 
 /** Catalog lifts done one leg or one arm at a time, each side's reps logged (docs/points-lifts.md). */
