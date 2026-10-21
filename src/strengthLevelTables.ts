@@ -866,6 +866,29 @@ export const LIFT_TABLES: Record<string, Row[]> = {
 252/371/521/697
 262/384/536/714
 272/396/551/730`),
+  // Strength Level's dumbbell row (men), read 2026-10-20: 1RM of one dumbbell, rowed one arm at a time; not doubled.
+  singlearmdbrow: parse(`
+18/34/56/84
+22/39/63/92
+26/44/69/99
+29/49/75/106
+33/54/81/113
+37/58/86/119
+40/63/91/126
+44/67/97/132
+47/71/102/138
+51/75/107/144
+54/79/112/149
+57/83/116/155
+60/87/121/160
+64/91/125/165
+67/95/130/170
+70/98/134/175
+73/102/138/180
+76/106/142/184
+79/109/146/189
+81/112/150/193
+84/116/154/198`),
   // Strength Level's incline bench press (men), read 2026-10-20: 1RM with the bar.
   inclinebenchpress: parse(`
 49/75/107/146

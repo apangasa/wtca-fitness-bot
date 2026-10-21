@@ -89,10 +89,11 @@ export const LIFT_1RM: Record<string, [number, number, number, number]> = {
   reardeltfly: [51, 84, 126, 178], // machine reverse fly (stack setting)
   barbellbulgariansplitsquat: [32, 69, 123, 194],
   dbbulgariansplitsquat: [44, 80, 126, 184], // 22/40/63/92 per dumbbell, doubled
+  singlearmdbrow: [33, 54, 81, 113], // dumbbell row table: one arm, one dumbbell, not doubled
 };
 
-/** Catalog lifts done one leg at a time, each leg's reps logged (docs/points-lifts.md). */
-export const ONE_SIDE_LIFTS = new Set(['singlelegpress', 'barbellbulgariansplitsquat', 'dbbulgariansplitsquat']);
+/** Catalog lifts done one leg or one arm at a time, each side's reps logged (docs/points-lifts.md). */
+export const ONE_SIDE_LIFTS = new Set(['singlelegpress', 'barbellbulgariansplitsquat', 'dbbulgariansplitsquat', 'singlearmdbrow']);
 
 export interface BodyweightSpec {
   kind: 'bw';
