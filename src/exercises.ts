@@ -84,6 +84,7 @@ export const SEED_EXERCISES: ExerciseSeed[] = [
   { key: 'barbellpreachercurl', label: 'Barbell Preacher Curl', unit: 'reps', weightNote: 'bar + plates' },
   // One arm at a time: log both arms' reps, weight is the one dumbbell.
   { key: 'singlearmdbrow', label: 'Single-Arm DB Row', unit: 'reps', weightNote: 'one dumbbell; log both arms\' reps' },
+  { key: 'pecdeck', label: 'Pec Deck', unit: 'reps', weightNote: 'machine stack setting' },
 ];
 
 /** A lift cannot be scored without a weight; squats are the exception (none = bodyweight). */

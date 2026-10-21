@@ -139,6 +139,8 @@ The hip thrust (`/hipthrust`) is priced from Strength Level's hip thrust table (
 
 The incline bench press (`/inclinebenchpress`) is the barbell lift, priced from Strength Level's incline bench press table (men, 1RM with the bar, 150 lb row 86 / 119 / 160 / 206 lb, read 2026-10-20, [source](https://strengthlevel.com/strength-standards/incline-bench-press/lb)). Its anchors are about 87% of the flat bench's at every level, so the same weight pays more on the incline. The dumbbell version is `/inclinedumbbellpress`.
 
+The pec deck (`/pecdeck`) is priced from Strength Level's machine chest fly table (men, 1RM, 150 lb row 76 / 117 / 169 / 231 lb, read 2026-10-20, [source](https://strengthlevel.com/strength-standards/machine-chest-fly/lb)), not the cable fly table (12 / 34 / 67 / 112), which is a different movement. The weight is the stack setting.
+
 The 1RM tables used (Beginner / Novice / Intermediate / Advanced, men at 150 lb; dumbbell lifts in the combined convention) are in `src/strengthLevelTables.ts` with their source and read date.
 
 ## Limits
