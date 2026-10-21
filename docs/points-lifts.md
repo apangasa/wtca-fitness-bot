@@ -136,6 +136,8 @@ The rope overhead tricep extension (`/ropeoverheadtricepextension`) is priced fr
 
 The hip thrust (`/hipthrust`) is priced from Strength Level's hip thrust table (men, 1RM, 150 lb row 93 / 170 / 275 / 406 lb, read 2026-10-12, [source](https://strengthlevel.com/strength-standards/hip-thrust/lb)).
 
+The incline bench press (`/inclinebenchpress`) is the barbell lift, priced from Strength Level's incline bench press table (men, 1RM with the bar, 150 lb row 86 / 119 / 160 / 206 lb, read 2026-10-20, [source](https://strengthlevel.com/strength-standards/incline-bench-press/lb)). Its anchors are about 87% of the flat bench's at every level, so the same weight pays more on the incline. The dumbbell version is `/inclinedumbbellpress`.
+
 The 1RM tables used (Beginner / Novice / Intermediate / Advanced, men at 150 lb; dumbbell lifts in the combined convention) are in `src/strengthLevelTables.ts` with their source and read date.
 
 ## Limits

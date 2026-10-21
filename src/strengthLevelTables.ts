@@ -866,6 +866,29 @@ export const LIFT_TABLES: Record<string, Row[]> = {
 252/371/521/697
 262/384/536/714
 272/396/551/730`),
+  // Strength Level's incline bench press (men), read 2026-10-20: 1RM with the bar.
+  inclinebenchpress: parse(`
+49/75/107/146
+58/86/121/162
+68/97/134/177
+77/108/147/192
+86/119/160/206
+95/130/172/220
+104/140/183/233
+113/150/195/246
+121/160/206/258
+130/170/217/271
+138/179/228/283
+146/188/238/294
+154/197/248/305
+162/206/258/316
+169/215/268/327
+177/223/277/337
+184/232/287/348
+192/240/296/358
+199/248/305/367
+206/256/313/377
+213/263/322/386`),
 };
 // The machine lat pulldown follows body weight on the same Strength Level table as the plain lat pulldown.
 LIFT_TABLES.machinelatpulldown = LIFT_TABLES.latpulldown!;
