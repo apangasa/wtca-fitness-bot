@@ -87,6 +87,8 @@ export const SEED_EXERCISES: ExerciseSeed[] = [
   { key: 'pecdeck', label: 'Pec Deck', unit: 'reps', weightNote: 'machine stack setting' },
   { key: 'ezbarcurl', label: 'EZ Bar Curl', unit: 'reps', weightNote: 'bar + plates' },
   { key: 'hipabduction', label: 'Hip Abduction', unit: 'reps', weightNote: 'machine stack setting' },
+  // Seated: body weight is not on the calves, so this is a plain lift, not the calf raise's bodyweight curve.
+  { key: 'seatedcalfraise', label: 'Seated Calf Raise', unit: 'reps', weightNote: 'plates loaded, or stack setting' },
 ];
 
 /** A lift cannot be scored without a weight; squats are the exception (none = bodyweight). */

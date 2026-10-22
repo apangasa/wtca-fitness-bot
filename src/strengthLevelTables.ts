@@ -912,6 +912,29 @@ export const LIFT_TABLES: Record<string, Row[]> = {
 161/219/289/369
 166/225/296/376
 171/231/303/384`),
+  // Strength Level's seated calf raise (men), read 2026-10-21: 1RM on the plate-loaded seated machine, both legs.
+  seatedcalfraise: parse(`
+31/72/134/215
+36/81/146/230
+42/89/157/245
+48/98/168/258
+54/106/179/271
+60/114/189/284
+65/121/199/296
+71/129/209/308
+76/136/218/319
+81/143/227/330
+87/150/236/340
+92/157/244/350
+97/163/252/360
+102/170/260/369
+107/176/268/379
+111/182/275/388
+116/188/283/396
+121/194/290/405
+125/200/297/413
+130/206/304/421
+134/211/311/429`),
   // Strength Level's leg extension (men), read 2026-10-21: 1RM stack setting on the machine, both legs.
   legextension: parse(`
 64/107/164/234
