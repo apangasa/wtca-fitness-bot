@@ -912,6 +912,29 @@ export const LIFT_TABLES: Record<string, Row[]> = {
 161/219/289/369
 166/225/296/376
 171/231/303/384`),
+  // Strength Level's leg extension (men), read 2026-10-21: 1RM stack setting on the machine, both legs.
+  legextension: parse(`
+64/107/164/234
+70/116/175/247
+77/124/186/259
+84/132/196/271
+90/140/205/282
+96/148/214/293
+102/155/223/303
+107/162/231/313
+113/169/239/322
+118/175/247/331
+123/181/254/340
+128/188/262/348
+133/193/269/356
+138/199/275/364
+143/205/282/371
+147/210/288/379
+152/216/295/386
+156/221/301/393
+160/226/307/400
+165/231/312/406
+169/236/318/413`),
   // Strength Level's hip abduction (men), read 2026-10-21: 1RM stack setting on the seated machine, both legs.
   hipabduction: parse(`
 50/93/154/229

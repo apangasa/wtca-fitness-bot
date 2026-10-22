@@ -145,6 +145,8 @@ The EZ bar curl (`/ezbarcurl`) is priced from Strength Level's EZ bar curl table
 
 The hip abduction (`/hipabduction`) is the seated machine, both legs at once, priced from Strength Level's hip abduction table (men, 1RM, 150 lb row 71 / 122 / 190 / 273 lb, read 2026-10-21, [source](https://strengthlevel.com/strength-standards/hip-abduction/lb); the exercise picture is the seated machine). The weight is the stack setting. Side-lying hip abduction, one leg with an ankle weight, is a separate bodyweight exercise (`/sidelyinghipabduction`).
 
+The leg extension (`/legextension`) is the machine, both legs at once, priced from Strength Level's leg extension table (men, 1RM, 150 lb row 90 / 140 / 205 / 282 lb, read 2026-10-21, [source](https://strengthlevel.com/strength-standards/leg-extension/lb)). The weight is the stack setting. The one-leg cable version is `/singlecablelegextension`.
+
 The 1RM tables used (Beginner / Novice / Intermediate / Advanced, men at 150 lb; dumbbell lifts in the combined convention) are in `src/strengthLevelTables.ts` with their source and read date.
 
 ## Limits
