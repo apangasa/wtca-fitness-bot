@@ -86,6 +86,7 @@ export const SEED_EXERCISES: ExerciseSeed[] = [
   { key: 'singlearmdbrow', label: 'Single-Arm DB Row', unit: 'reps', weightNote: 'one dumbbell; log both arms\' reps' },
   { key: 'pecdeck', label: 'Pec Deck', unit: 'reps', weightNote: 'machine stack setting' },
   { key: 'ezbarcurl', label: 'EZ Bar Curl', unit: 'reps', weightNote: 'bar + plates' },
+  { key: 'hipabduction', label: 'Hip Abduction', unit: 'reps', weightNote: 'machine stack setting' },
 ];
 
 /** A lift cannot be scored without a weight; squats are the exception (none = bodyweight). */

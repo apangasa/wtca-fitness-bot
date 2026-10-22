@@ -143,6 +143,8 @@ The pec deck (`/pecdeck`) is priced from Strength Level's machine chest fly tabl
 
 The EZ bar curl (`/ezbarcurl`) is priced from Strength Level's EZ bar curl table (men, 1RM with the bar, 150 lb row 46 / 65 / 90 / 118 lb, read 2026-10-20, [source](https://strengthlevel.com/strength-standards/ez-bar-curl/lb)), a little above the barbell curl table that `/bicepcurls` uses (39 / 61 / 89 / 123) at the bottom and a little below at the top. The weight is bar plus plates.
 
+The hip abduction (`/hipabduction`) is the seated machine, both legs at once, priced from Strength Level's hip abduction table (men, 1RM, 150 lb row 71 / 122 / 190 / 273 lb, read 2026-10-21, [source](https://strengthlevel.com/strength-standards/hip-abduction/lb); the exercise picture is the seated machine). The weight is the stack setting. Side-lying hip abduction, one leg with an ankle weight, is a separate bodyweight exercise (`/sidelyinghipabduction`).
+
 The 1RM tables used (Beginner / Novice / Intermediate / Advanced, men at 150 lb; dumbbell lifts in the combined convention) are in `src/strengthLevelTables.ts` with their source and read date.
 
 ## Limits

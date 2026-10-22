@@ -92,6 +92,7 @@ export const LIFT_1RM: Record<string, [number, number, number, number]> = {
   singlearmdbrow: [33, 54, 81, 113], // dumbbell row table: one arm, one dumbbell, not doubled
   pecdeck: [76, 117, 169, 231], // machine chest fly table (stack setting)
   ezbarcurl: [46, 65, 90, 118], // EZ bar curl table, with the bar
+  hipabduction: [71, 122, 190, 273], // seated hip abduction machine (stack setting, both legs)
 };
 
 /** Catalog lifts done one leg or one arm at a time, each side's reps logged (docs/points-lifts.md). */
