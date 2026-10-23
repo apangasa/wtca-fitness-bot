@@ -80,7 +80,7 @@ Every lift in the bot is priced the same way, from Strength Level's 1RM table fo
 - **Leaderboards and races** for a weighted lift rank in points, because reps at different weights are different work. Plain exercises rank in their own unit.
 - **Points are computed per entry** at that entry's weight, so a day with 115 lb and 135 lb sets prices each correctly.
 - **Corrections:** `/undo` removes the latest entry (or one from a past day in the current season). There is no `/set`, because it cannot represent sets at different weights.
-- **A lift with no weight scores 0.**
+- **A lift with no weight scores 0,** except the split squats, which count part of your body as load ([points-lifts.md](points-lifts.md#every-lift-has-a-table)).
 
 ## Limits
 

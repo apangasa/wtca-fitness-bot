@@ -4,6 +4,7 @@ import { dirname } from 'node:path';
 import { config } from '../config.js';
 import { SEED_EXERCISES } from '../exercises.js';
 import {
+  LIFT_BODY_SHARE,
   SCORING,
   assertCatalog,
   catalogPricing,
@@ -354,6 +355,22 @@ function migrateAfterSeed(conn: Database.Database): void {
       })();
     }
     conn.pragma('user_version = 14');
+    invalidateScoring();
+  }
+  if (version < 15) {
+    // Migration 15: lifts that also move the body count k x body weight as load (docs/points-lifts.md), so an unloaded rep no longer
+    // pays 0. Each live record keeps its tuned numbers and only gains k.
+    const set = conn.prepare('UPDATE exercises SET pricing = ?, points_per_rep = ? WHERE key = ?');
+    conn.transaction(() => {
+      for (const [key, k] of Object.entries(LIFT_BODY_SHARE)) {
+        const row = conn.prepare('SELECT pricing FROM exercises WHERE key = ?').get(key) as { pricing: string | null } | undefined;
+        const spec = parsePricing(row?.pricing ?? null);
+        if (!spec || spec.kind !== 'lift' || spec.k !== undefined) continue;
+        const cols = pricingColumns({ ...spec, k });
+        set.run(cols.json, cols.display, key);
+      }
+    })();
+    conn.pragma('user_version = 15');
     invalidateScoring();
   }
 }

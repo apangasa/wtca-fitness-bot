@@ -21,7 +21,7 @@ How a lift, a bodyweight exercise with added load, and an assisted pull-up are p
 
 ### Range
 
-- **Below the Beginner weight,** the Beginner-to-Novice exponent continues downward. Price reaches 0 at 0 lb, and light weights pay very little (bench: 45 lb about 0.3 a rep, 70 lb about 2.1). Strength Level has no data below its 5th percentile; the shape follows the rarity principle, under which an effort easier than the 5th-percentile lifter's earns almost nothing.
+- **Below the Beginner weight,** the Beginner-to-Novice exponent continues downward. Price reaches 0 at 0 lb (except for the split squats, which also move the body: see below), and light weights pay very little (bench: 45 lb about 0.3 a rep, 70 lb about 2.1). Strength Level has no data below its 5th percentile; the shape follows the rarity principle, under which an effort easier than the 5th-percentile lifter's earns almost nothing.
 - **Above the Advanced weight,** the Intermediate-to-Advanced exponent continues. No logged weight is above the Advanced anchor (the heaviest, as of 2026-10-06, is a 175 lb bench, 92% of the 190 lb anchor).
 - Of 82 logged lift entries, 17 sit below the Beginner anchor weight.
 
@@ -121,7 +121,23 @@ The machine lat pulldown (`/machinelatpulldown`) is a separate lift for a diverg
 
 The reverse grip lat pulldown (`/reversegriplatpulldown`) has its own Strength Level table (men, 150 lb row: 98 / 136 / 183 / 236 lb, read 2026-10-07), about 10% above the plain lat pulldown's 89 / 124 / 166 / 215 at every level.
 
-Bulgarian split squat is two lifts, because Strength Level publishes two 1RM tables (150 lb row): the page that does not name dumbbells, priced as the barbell lift, at 32 / 69 / 123 / 194 lb, and the dumbbell page at 22 / 40 / 63 / 92 per dumbbell, 44 / 80 / 126 / 184 combined. They agree at Intermediate (123 against 126) and differ at the ends (Beginner 32 against 44, Advanced 194 against 184), so a light load pays more on the barbell table and a heavy one slightly more on the dumbbell table (60 lb: 16.4 against 12.7 a rep; 135 lb: 41.3 against 42.7). Neither table includes body weight, so a split squat with no load pays about 0, unlike the lunge; counting a share of body weight would need a sourced k.
+Bulgarian split squat is two lifts, because Strength Level publishes two 1RM tables (150 lb row): the page that does not name dumbbells, priced as the barbell lift, at 32 / 69 / 123 / 194 lb, and the dumbbell page at 22 / 40 / 63 / 92 per dumbbell, 44 / 80 / 126 / 184 combined. They agree at Intermediate (123 against 126) and differ at the ends (Beginner 32 against 44, Advanced 194 against 184), so a light load pays more on the barbell table and a heavy one slightly more on the dumbbell table (60 lb: 16.4 against 12.7 a rep; 135 lb: 41.3 against 42.7). Neither table includes body weight, so both split squats count part of it as load (decided 2026-10-23); the prices in the previous sentence are from before that change.
+
+**Split squats carry body weight.** A split squat moves the lifter's body as well as the load, so pricing the logged weight alone paid 0 at 0 lb and almost nothing for light sets. Each split squat now counts **k × body weight as load, added both to the logged weight and to every 1RM in its table**, and is priced on that table's curve as usual. No other change is made: both tables keep all four anchors and their own shape, and the price rises with every pound.
+
+- **k = 0.66, the front leg's share of the vertical force.** [Int J Exerc Sci, 2025](https://pmc.ncbi.nlm.nih.gov/articles/PMC12408075/), Table 1, measured both feet on force plates in 9 trained men doing bodyweight Bulgarian split squats. At the bottom with a natural trunk lean the front leg took 391 N of 578 N (wide stance, 0.676) and 390 N of 601 N (narrow, 0.649); the mean is 0.66. Across all six stance and lean conditions the share is 0.61 to 0.72. The share of the total is used rather than of body weight, because the two feet's forces at the bottom sum to less than the reported mean body weight. Assumption: the added load splits between the legs as the body does.
+- **Barbell and dumbbells differ at 0 lb.** An unloaded rep pays 1.31 a leg on the barbell table and 0.74 on the dumbbell table (150 lb), because Strength Level's two tables differ at the bottom (Beginner 32 against 44 lb). Each table's own data is kept rather than forcing them to agree (decided 2026-10-23).
+- **Why the unloaded price is low.** Counting 0.66 of 150 lb as load, the tables imply about 10 (barbell) and 14 (dumbbell) unloaded reps for a Beginner, so on the 8-rep calibration an unloaded rep sits below Beginner. Pricing it the way bodyweight exercises are priced (from Novice and Intermediate reps) would give 2.6 to 2.9 a leg, but scaling the curve to that multiplies every price by 2.3 (barbell) or 3.9 (dumbbell), so it is not used.
+- A weight of 0 or no weight is a rep with the body alone.
+
+| Added load | 0 | 10 lb | 20 lb | 45 lb | 95 lb | 135 lb |
+|---|---|---|---|---|---|---|
+| Barbell, per leg rep, before | 0 | 0.34 | 1.19 | 5.12 | 14.26 | 20.64 |
+| Barbell, per leg rep, now | 1.31 | 2.25 | 3.66 | 8.75 | 17.22 | 23.65 |
+| Dumbbells, per leg rep, before | 0 | 0.10 | 0.50 | 3.26 | 13.56 | 21.37 |
+| Dumbbells, per leg rep, now | 0.74 | 1.33 | 2.29 | 7.44 | 17.24 | 25.32 |
+
+The other lifts that move the body (deadlift, Romanian deadlifts, good morning, hip thrust) still price the load alone and pay 0 at 0 lb. They are not decided yet.
 
 Romanian deadlift is two lifts for the same reason (150 lb row): `/rdl` is the barbell lift on Strength Level's Romanian deadlift table, 115 / 168 / 235 / 313 lb with the bar, and `/dbrdl` is the dumbbell lift on the dumbbell Romanian deadlift table, 33 / 55 / 83 / 118 per dumbbell, 66 / 110 / 166 / 236 combined (read 2026-10-16, [source](https://strengthlevel.com/strength-standards/dumbbell-romanian-deadlift/lb)). The dumbbell anchors are 57-75% of the barbell ones, so a dumbbell set logged as a barbell one is underpaid.
 

@@ -42,6 +42,8 @@ export const DECISIONS = {
   K_FULL: 1.0,
   // docs/points-lifts.md: a one-side rep (one arm or one leg, logged per side) pays half a rep that works both sides.
   ONE_SIDE_FACTOR: 0.5,
+  // docs/points-lifts.md: front leg's share of the vertical force in a bodyweight Bulgarian split squat (natural lean).
+  K_SPLIT_SQUAT: 0.66,
 };
 
 /** Price per rep at each level's 8-rep weight: ladder / set length = 3.75, 15, 30, 48. */
@@ -100,6 +102,12 @@ export const LIFT_1RM: Record<string, [number, number, number, number]> = {
 /** Catalog lifts done one leg or one arm at a time, each side's reps logged (docs/points-lifts.md). */
 export const ONE_SIDE_LIFTS = new Set(['singlelegpress', 'barbellbulgariansplitsquat', 'dbbulgariansplitsquat', 'singlearmdbrow']);
 
+/** Catalog lifts that also move the lifter's body: k x body weight is counted as load on top of the logged weight (docs/points-lifts.md). */
+export const LIFT_BODY_SHARE: Record<string, number> = {
+  barbellbulgariansplitsquat: DECISIONS.K_SPLIT_SQUAT,
+  dbbulgariansplitsquat: DECISIONS.K_SPLIT_SQUAT,
+};
+
 export interface BodyweightSpec {
   kind: 'bw';
   // Price of a rep with no added load at 150 lb.
@@ -120,7 +128,8 @@ export interface BodyweightSpec {
 
 export type PricingSpec =
   | { kind: 'flat'; p: number; unit?: string; table?: string }
-  | { kind: 'lift'; oneRM: number[]; table?: string; oneSide?: boolean }
+  // k: share of body weight the lift also moves, counted as load on top of the logged weight and the table's 1RMs.
+  | { kind: 'lift'; oneRM: number[]; table?: string; oneSide?: boolean; k?: number }
   | BodyweightSpec;
 
 // Pull-ups are anchored on effective 1RMs (body weight + added weight): the reps table shows "<1" at Beginner.
@@ -169,7 +178,10 @@ export function catalogPricing(key: string): PricingSpec | null {
   const bw = BODYWEIGHT[key];
   if (bw) return { ...bw };
   const lift = LIFT_1RM[key];
-  if (lift) return { kind: 'lift', oneRM: [...lift], table: key, ...(ONE_SIDE_LIFTS.has(key) ? { oneSide: true } : {}) };
+  if (lift) {
+    const k = LIFT_BODY_SHARE[key];
+    return { kind: 'lift', oneRM: [...lift], table: key, ...(ONE_SIDE_LIFTS.has(key) ? { oneSide: true } : {}), ...(k !== undefined ? { k } : {}) };
+  }
   const flat = FLAT[key];
   if (flat) return { kind: 'flat', p: flat.p, ...(flat.unit ? { unit: flat.unit } : {}), ...(flat.table ? { table: flat.table } : {}) };
   return null;
@@ -225,10 +237,19 @@ export function flatCurve(p: number): Curve {
   return () => p;
 }
 
-/** A lift curve: no weight scores 0; anchors follow body weight when the lift has a table. */
-export function liftCurve(oneRM: readonly number[], table?: string, bodyLb: number = SCORING.BODY_LB): Curve {
-  const price = liftPrice(anchorsAt(oneRM, table, LIFT_TABLES, bodyLb));
-  return (w) => (w === null ? 0 : price(w));
+/**
+ * A lift curve: anchors follow body weight when the lift has a table. With k (a lift that also moves the body), k x body weight is
+ * added to the logged weight and to every 1RM, and no weight is a rep with the body alone; without k, no weight scores 0.
+ */
+export function liftCurve(oneRM: readonly number[], table?: string, bodyLb: number = SCORING.BODY_LB, k?: number): Curve {
+  const anchors = anchorsAt(oneRM, table, LIFT_TABLES, bodyLb);
+  if (k === undefined) {
+    const price = liftPrice(anchors);
+    return (w) => (w === null ? 0 : price(w));
+  }
+  const offset = k * (table !== undefined ? bodyLb : SCORING.BODY_LB);
+  const price = liftPrice(anchors.map((x) => x + offset));
+  return (w) => price(offset + Math.max(w ?? 0, 0));
 }
 
 /** Bodyweight curve: load = k x body weight + added load, scaled so a no-load rep pays p; assisted subtracts the assistance (none logged = 0). */
@@ -258,7 +279,7 @@ export function buildCurve(spec: PricingSpec, bodyLb: number = SCORING.BODY_LB):
       return flatCurve(spec.p * flatFactor(spec.table, bodyLb));
     case 'lift':
       if (spec.oneRM.length !== 4) throw new Error('a lift needs four 1RM anchors');
-      return oneSided(liftCurve(spec.oneRM, spec.table, bodyLb), spec.oneSide);
+      return oneSided(liftCurve(spec.oneRM, spec.table, bodyLb, spec.k), spec.oneSide);
     case 'bw':
       return oneSided(bodyweightCurve(spec, bodyLb), spec.oneSide);
   }
@@ -296,9 +317,14 @@ export function pricingProblem(spec: unknown): string | null {
   }
   if (s.kind === 'flat') return price(s.p) ? null : `a flat price is a number from 0 to ${MAX_PRICE}`;
   if (s.oneSide !== undefined && typeof s.oneSide !== 'boolean') return 'oneSide is true or false';
-  if (s.kind === 'lift') return anchors(s.oneRM) ? null : 'a lift needs four increasing positive 1RMs (Beginner, Novice, Intermediate, Advanced)';
+  const kProblem = `k is the share of body weight counted as load: above 0 and at most ${MAX_K}`;
+  const kValid = (k: unknown): boolean => typeof k === 'number' && k > 0 && k <= MAX_K;
+  if (s.kind === 'lift') {
+    if (!anchors(s.oneRM)) return 'a lift needs four increasing positive 1RMs (Beginner, Novice, Intermediate, Advanced)';
+    return s.k === undefined || kValid(s.k) ? null : kProblem;
+  }
   if (!price(s.p)) return `a bodyweight price is a number from 0 to ${MAX_PRICE}`;
-  if (typeof s.k !== 'number' || !(s.k > 0 && s.k <= MAX_K)) return `k is the share of body weight counted as load: above 0 and at most ${MAX_K}`;
+  if (!kValid(s.k)) return kProblem;
   if ((s.reps !== undefined) === (s.oneRM !== undefined)) return 'a bodyweight curve needs exactly one of reps or oneRM';
   if (!anchors(s.reps ?? s.oneRM)) return 'reps / oneRM are four increasing positive numbers (Beginner, Novice, Intermediate, Advanced)';
   if (s.assist !== undefined && typeof s.assist !== 'boolean') return 'assist is true or false';

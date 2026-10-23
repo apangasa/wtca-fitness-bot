@@ -65,9 +65,11 @@ if (reopen) {
   check('reopen: a curve tuned in the database survives a restart', JSON.stringify(bench.pricing) === JSON.stringify({ kind: 'lift', oneRM: [100, 140, 190, 240] }), JSON.stringify(bench.pricing));
   check('reopen: a hand-set run price is not put back to 521 by the migration', q.getExercise('run')!.pricing?.kind === 'flat' && (q.getExercise('run')!.pricing as { p: number }).p === 777);
   check('reopen: burpees tuned to 11 are not repriced again', (q.getExercise('burpees')!.pricing as { p: number }).p === 11);
-  check('reopen: the migration did not run again (user_version 14, an unusable record is not repaired behind your back)', userVersion() === 14 && q.getExercise('abrolls')!.pricing === null);
+  check('reopen: the migration did not run again (user_version 15, an unusable record is not repaired behind your back)', userVersion() === 15 && q.getExercise('abrolls')!.pricing === null);
   const machineRe = q.getExercise('machinelatpulldown')!;
   check('reopen: migration 9 moved the live-style machine lat pulldown record from the doubled to the x1.5 anchors (and its reference weight)', machineRe.pricing?.kind === 'lift' && machineRe.pricing.oneRM.join() === '133.5,186,249,322.5' && machineRe.refWeight !== null && near(machineRe.refWeight, (29 / 36) * 186, 1e-9), JSON.stringify(machineRe));
+  const bssRe = q.getExercise('barbellbulgariansplitsquat')!;
+  check('reopen: migration 15 gave the live-style split squat record k and kept its tuned anchors', bssRe.pricing?.kind === 'lift' && bssRe.pricing.k === 0.66 && bssRe.pricing.oneRM.join() === '30,70,120,190' && bssRe.pricing.oneSide === true, JSON.stringify(bssRe.pricing));
   check('reopen: nothing was duplicated', q.listExercises().filter((e) => e.key === 'benchpress').length === 1);
   check('reopen: a body weight set with /weight survives a restart', q.getUserWeight('u-wt') === 130 && q.userWeightLog().length >= 3);
   q.ensureUser('u-re', 'Reopen');
@@ -126,7 +128,7 @@ const oldRun = q.dayTotals(GUILD, '2026-09-12').find((t) => t.exerciseKey === 'r
 check('the 3-mile run logged before was backfilled to 3 x 521.14', !!oldRun && near(oldRun.points, 3 * RUN), String(oldRun?.points));
 const swimEx = q.getExercise('swim');
 check('swim exists at 1.0286 per yard', swimEx?.pricing?.kind === 'flat' && near(swimEx.pricing.p, SWIM) && swimEx.unit === 'yd', JSON.stringify(swimEx));
-check('the one-shot upgrades are recorded (user_version 14)', userVersion() === 14);
+check('the one-shot upgrades are recorded (user_version 15)', userVersion() === 15);
 const machineLat = q.getExercise('machinelatpulldown')!;
 check('machine lat pulldown is seeded as a lift on the lat pulldown anchors x1.5 and its own table', machineLat.label === 'Machine Lat Pulldown' && machineLat.pricing?.kind === 'lift' && machineLat.pricing.table === 'machinelatpulldown' && machineLat.pricing.oneRM.join() === '133.5,186,249,322.5' && machineLat.refWeight !== null, JSON.stringify(machineLat));
 check('a stack setting of 1.5w on the machine lat pulldown pays what w pays on the plain lat pulldown, at 150 lb and at 220 lb', [150, 220].every((bw) => [50, 72.5, 90, 100].every((w) => near(buildCurve(catalogPricing('machinelatpulldown')!, bw)(1.5 * w), buildCurve(catalogPricing('latpulldown')!, bw)(w), 1e-9))));
@@ -580,6 +582,8 @@ db().prepare(`UPDATE exercises SET pricing = '{"kind":"flat","p":11}' WHERE key 
 db().prepare(`UPDATE exercises SET pricing = '{"kind":"flat","p":5000}' WHERE key = 'abrolls'`).run();
 // A live-style row from before migration 9 (doubled anchors, user_version 8): the reopen run must move it to the x1.5 anchors.
 db().prepare(`UPDATE exercises SET pricing = '{"kind":"lift","oneRM":[178,248,332,430],"table":"machinelatpulldown"}', ref_weight = 99.9 WHERE key = 'machinelatpulldown'`).run();
+// A live-style split squat record from before migration 15 (no k, tuned anchors): the reopen run must add k and keep the anchors.
+db().prepare(`UPDATE exercises SET pricing = '{"kind":"lift","oneRM":[30,70,120,190],"table":"barbellbulgariansplitsquat","oneSide":true}' WHERE key = 'barbellbulgariansplitsquat'`).run();
 db().pragma('user_version = 8');
 invalidateScoring();
 check('a record broken by hand (a price of 5000) scores 0 instead of falling back to the old columns', q.priceAt(q.getExercise('abrolls')!, null) === 0 && near(q.getExercise('abrolls')!.pointsPerRep, implied(7, 21), 1e-9));

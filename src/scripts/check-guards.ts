@@ -161,6 +161,15 @@ check('arguments: --one-side lands in the lift record', g3.command === 'approve'
   const one = S.buildCurve({ kind: 'lift', oneRM: [19.5, 30.5, 44.5, 61.5], table: 'bicepcurls', oneSide: true });
   check('scoring: one arm at 10 lb pays half a two-arm rep at 20 lb combined', Math.abs(one(10) - both(20) / 2) < 1e-12);
 }
+{
+  // Split squats count k x body weight as load: an unloaded rep pays, the price rises with load, and each table keeps its own bottom.
+  const bar = S.buildCurve(S.catalogPricing('barbellbulgariansplitsquat')!);
+  const dumb = S.buildCurve(S.catalogPricing('dbbulgariansplitsquat')!);
+  check('scoring: an unloaded split squat pays more than 0 (no weight and 0 lb alike)', bar(null) > 1 && dumb(null) > 0.5 && bar(0) === bar(null));
+  check('scoring: the split squat price rises with every pound', [0, 1, 5, 10, 20, 45, 95, 135, 250].every((w, i, a) => i === 0 || (bar(w) > bar(a[i - 1]!) && dumb(w) > dumb(a[i - 1]!))));
+  check('pricing: a lift k outside (0, 2] is refused', S.pricingProblem({ kind: 'lift', oneRM: [1, 2, 3, 4], k: 0 }) !== null && S.pricingProblem({ kind: 'lift', oneRM: [1, 2, 3, 4], k: 0.66 }) === null);
+  check('scoring: a lift without k still pays 0 with no weight', S.buildCurve(S.catalogPricing('deadlift')!)(null) === 0);
+}
 
 // --- the script end to end ---
 const noTable = cli(['approve', 'zzcli', '--label', 'Zz cli', '--flat', '3']);
