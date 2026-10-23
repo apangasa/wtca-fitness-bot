@@ -359,15 +359,15 @@ function migrateAfterSeed(conn: Database.Database): void {
   }
   if (version < 15) {
     // Migration 15: lifts that also move the body count k x body weight as load (docs/points-lifts.md), so an unloaded rep no longer
-    // pays 0. Each live record keeps its tuned numbers and only gains k.
+    // pays 0. Every lift priced on one of those tables (catalog or approved from the queue) keeps its tuned numbers and only gains k.
+    const rows = conn.prepare('SELECT key, pricing FROM exercises').all() as { key: string; pricing: string | null }[];
     const set = conn.prepare('UPDATE exercises SET pricing = ?, points_per_rep = ? WHERE key = ?');
     conn.transaction(() => {
-      for (const [key, k] of Object.entries(LIFT_BODY_SHARE)) {
-        const row = conn.prepare('SELECT pricing FROM exercises WHERE key = ?').get(key) as { pricing: string | null } | undefined;
-        const spec = parsePricing(row?.pricing ?? null);
-        if (!spec || spec.kind !== 'lift' || spec.k !== undefined) continue;
-        const cols = pricingColumns({ ...spec, k });
-        set.run(cols.json, cols.display, key);
+      for (const row of rows) {
+        const spec = parsePricing(row.pricing);
+        if (!spec || spec.kind !== 'lift' || spec.k !== undefined || spec.table === undefined || !Object.hasOwn(LIFT_BODY_SHARE, spec.table)) continue;
+        const cols = pricingColumns({ ...spec, k: LIFT_BODY_SHARE[spec.table]! });
+        set.run(cols.json, cols.display, row.key);
       }
     })();
     conn.pragma('user_version = 15');

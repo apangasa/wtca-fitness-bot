@@ -55,7 +55,7 @@ Examples of weighted-lift prices per rep, at the 150 lb reference body weight:
 | Lift | Weights and prices |
 |---|---|
 | Bench press | 95 lb: 7.9 · 135 lb: 24.3 · 185 lb: 45.6 · 225 lb: 65.5 |
-| Deadlift | 135 lb: 4.6 · 225 lb: 26.7 · 315 lb: 51.4 |
+| Deadlift | 135 lb: 9.6 · 225 lb: 33.4 · 315 lb: 60.1 |
 | Bicep curl | 30 lb: 3.3 · 50 lb: 15.5 · 70 lb: 28.7 |
 | Lateral raise (both dumbbells) | 20 lb: 7.1 · 30 lb: 15.6 · 40 lb: 22.1 |
 | Cable crunch (stack) | 20 lb: 0.8 · 30 lb: 2.0 · 40 lb: 4.1 · 60 lb: 10.9 |
@@ -80,7 +80,7 @@ Every lift in the bot is priced the same way, from Strength Level's 1RM table fo
 - **Leaderboards and races** for a weighted lift rank in points, because reps at different weights are different work. Plain exercises rank in their own unit.
 - **Points are computed per entry** at that entry's weight, so a day with 115 lb and 135 lb sets prices each correctly.
 - **Corrections:** `/undo` removes the latest entry (or one from a past day in the current season). There is no `/set`, because it cannot represent sets at different weights.
-- **A lift with no weight scores 0,** except the split squats, which count part of your body as load ([points-lifts.md](points-lifts.md#every-lift-has-a-table)).
+- **A lift with no weight scores 0,** except lifts that also move your body (split squats, deadlifts, Romanian deadlifts, good morning, hip thrust), which count part of it as load ([points-lifts.md](points-lifts.md#lifts-that-move-the-body)).
 
 ## Limits
 

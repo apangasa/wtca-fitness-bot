@@ -168,7 +168,10 @@ check('arguments: --one-side lands in the lift record', g3.command === 'approve'
   check('scoring: an unloaded split squat pays more than 0 (no weight and 0 lb alike)', bar(null) > 1 && dumb(null) > 0.5 && bar(0) === bar(null));
   check('scoring: the split squat price rises with every pound', [0, 1, 5, 10, 20, 45, 95, 135, 250].every((w, i, a) => i === 0 || (bar(w) > bar(a[i - 1]!) && dumb(w) > dumb(a[i - 1]!))));
   check('pricing: a lift k outside (0, 2] is refused', S.pricingProblem({ kind: 'lift', oneRM: [1, 2, 3, 4], k: 0 }) !== null && S.pricingProblem({ kind: 'lift', oneRM: [1, 2, 3, 4], k: 0.66 }) === null);
-  check('scoring: a lift without k still pays 0 with no weight', S.buildCurve(S.catalogPricing('deadlift')!)(null) === 0);
+  check('scoring: a lift without k still pays 0 with no weight', S.buildCurve(S.catalogPricing('benchpress')!)(null) === 0);
+  const dl = S.buildCurve(S.catalogPricing('deadlift')!);
+  check('scoring: the deadlift counts head, arms, trunk and thighs, and rises with every pound', S.catalogPricing('deadlift')!.kind === 'lift' && Math.abs((S.catalogPricing('deadlift') as { k?: number }).k! - 0.878) < 1e-12 && [0, 45, 95, 135, 225, 315].every((w, i, a) => i === 0 || dl(w) > dl(a[i - 1]!)));
+  check('scoring: the hinges and hip thrust share a body weight rule by table', ['rdl', 'dbrdl'].every((t) => (S.catalogPricing(t) as { k?: number }).k === 0.678) && S.LIFT_BODY_SHARE.goodmorning === 0.678 && Math.abs(S.LIFT_BODY_SHARE.hipthrust! - 0.3619) < 1e-9);
 }
 
 // --- the script end to end ---

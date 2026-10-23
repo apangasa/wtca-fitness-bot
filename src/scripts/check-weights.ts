@@ -70,6 +70,10 @@ if (reopen) {
   check('reopen: migration 9 moved the live-style machine lat pulldown record from the doubled to the x1.5 anchors (and its reference weight)', machineRe.pricing?.kind === 'lift' && machineRe.pricing.oneRM.join() === '133.5,186,249,322.5' && machineRe.refWeight !== null && near(machineRe.refWeight, (29 / 36) * 186, 1e-9), JSON.stringify(machineRe));
   const bssRe = q.getExercise('barbellbulgariansplitsquat')!;
   check('reopen: migration 15 gave the live-style split squat record k and kept its tuned anchors', bssRe.pricing?.kind === 'lift' && bssRe.pricing.k === 0.66 && bssRe.pricing.oneRM.join() === '30,70,120,190' && bssRe.pricing.oneSide === true, JSON.stringify(bssRe.pricing));
+  const gm = q.getExercise('cablerow')!;
+  check('reopen: migration 15 gave an approved lift on the good morning table k by its table', gm.pricing?.kind === 'lift' && gm.pricing.k === 0.678 && gm.pricing.oneRM.join() === '47,91,152,230', JSON.stringify(gm.pricing));
+  const bench15 = q.getExercise('benchpress')!;
+  check('reopen: migration 15 left a lift whose body does not move alone', bench15.pricing?.kind === 'lift' && bench15.pricing.k === undefined);
   check('reopen: nothing was duplicated', q.listExercises().filter((e) => e.key === 'benchpress').length === 1);
   check('reopen: a body weight set with /weight survives a restart', q.getUserWeight('u-wt') === 130 && q.userWeightLog().length >= 3);
   q.ensureUser('u-re', 'Reopen');
@@ -582,6 +586,8 @@ db().prepare(`UPDATE exercises SET pricing = '{"kind":"flat","p":11}' WHERE key 
 db().prepare(`UPDATE exercises SET pricing = '{"kind":"flat","p":5000}' WHERE key = 'abrolls'`).run();
 // A live-style row from before migration 9 (doubled anchors, user_version 8): the reopen run must move it to the x1.5 anchors.
 db().prepare(`UPDATE exercises SET pricing = '{"kind":"lift","oneRM":[178,248,332,430],"table":"machinelatpulldown"}', ref_weight = 99.9 WHERE key = 'machinelatpulldown'`).run();
+// A queue-approved lift on a table that moves the body (as /goodmorning is live): migration 15 must give it k by its table.
+db().prepare(`UPDATE exercises SET pricing = '{"kind":"lift","oneRM":[47,91,152,230],"table":"goodmorning"}' WHERE key = 'cablerow'`).run();
 // A live-style split squat record from before migration 15 (no k, tuned anchors): the reopen run must add k and keep the anchors.
 db().prepare(`UPDATE exercises SET pricing = '{"kind":"lift","oneRM":[30,70,120,190],"table":"barbellbulgariansplitsquat","oneSide":true}' WHERE key = 'barbellbulgariansplitsquat'`).run();
 db().pragma('user_version = 8');

@@ -44,6 +44,12 @@ export const DECISIONS = {
   ONE_SIDE_FACTOR: 0.5,
   // docs/points-lifts.md: front leg's share of the vertical force in a bodyweight Bulgarian split squat (natural lean).
   K_SPLIT_SQUAT: 0.66,
+  // docs/points-lifts.md: head, arms and trunk (Winter), lifted by a hinge with the knees nearly fixed.
+  K_HINGE: 0.678,
+  // docs/points-lifts.md: head, arms and trunk plus both thighs (Winter), lifted by a deadlift from the floor.
+  K_DEADLIFT: 0.678 + 2 * 0.1,
+  // docs/points-lifts.md: the weight of trunk and thighs that bears on the hips (Winter masses and centres of mass), shoulders on a bench.
+  K_HIP_THRUST: 0.497 * 0.5 + 2 * 0.1 * (1 - 0.433),
 };
 
 /** Price per rep at each level's 8-rep weight: ladder / set length = 3.75, 15, 30, 48. */
@@ -102,10 +108,15 @@ export const LIFT_1RM: Record<string, [number, number, number, number]> = {
 /** Catalog lifts done one leg or one arm at a time, each side's reps logged (docs/points-lifts.md). */
 export const ONE_SIDE_LIFTS = new Set(['singlelegpress', 'barbellbulgariansplitsquat', 'dbbulgariansplitsquat', 'singlearmdbrow']);
 
-/** Catalog lifts that also move the lifter's body: k x body weight is counted as load on top of the logged weight (docs/points-lifts.md). */
+/** Lift tables whose lifts also move the lifter's body: k x body weight is counted as load on top of the logged weight (docs/points-lifts.md). */
 export const LIFT_BODY_SHARE: Record<string, number> = {
   barbellbulgariansplitsquat: DECISIONS.K_SPLIT_SQUAT,
   dbbulgariansplitsquat: DECISIONS.K_SPLIT_SQUAT,
+  rdl: DECISIONS.K_HINGE,
+  dbrdl: DECISIONS.K_HINGE,
+  goodmorning: DECISIONS.K_HINGE,
+  deadlift: DECISIONS.K_DEADLIFT,
+  hipthrust: DECISIONS.K_HIP_THRUST,
 };
 
 export interface BodyweightSpec {
