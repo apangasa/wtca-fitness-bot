@@ -89,6 +89,7 @@ export const SEED_EXERCISES: ExerciseSeed[] = [
   { key: 'hipabduction', label: 'Hip Abduction', unit: 'reps', weightNote: 'machine stack setting' },
   // Seated: body weight is not on the calves, so this is a plain lift, not the calf raise's bodyweight curve.
   { key: 'seatedcalfraise', label: 'Seated Calf Raise', unit: 'reps', weightNote: 'plates loaded, or stack setting' },
+  { key: 'machineshoulderpress', label: 'Machine Shoulder Press', unit: 'reps', weightNote: 'stack setting or plates loaded' },
 ];
 
 /** A lift cannot be scored without a weight; squats are the exception (none = bodyweight). */

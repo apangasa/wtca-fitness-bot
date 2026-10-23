@@ -149,6 +149,8 @@ The leg extension (`/legextension`) is the machine, both legs at once, priced fr
 
 The seated calf raise (`/seatedcalfraise`) is priced from Strength Level's seated calf raise table (men, 1RM, 150 lb row 54 / 106 / 179 / 271 lb, read 2026-10-21, [source](https://strengthlevel.com/strength-standards/seated-calf-raise/lb); the exercise picture is the plate-loaded seated machine, both legs). Seated, body weight is not on the calves, so it is a plain lift and not the standing calf raise's bodyweight curve. The weight is the plates loaded (or the stack setting on a stack machine).
 
+The machine shoulder press (`/machineshoulderpress`) is priced from Strength Level's machine shoulder press table (men, 1RM, 150 lb row 49 / 88 / 142 / 208 lb, read 2026-10-22, [source](https://strengthlevel.com/strength-standards/machine-shoulder-press/lb)), not the overhead press table that `/overheadpress` uses (57 / 83 / 116 / 154), which is a free barbell. The weight is the stack setting or the plates loaded.
+
 The 1RM tables used (Beginner / Novice / Intermediate / Advanced, men at 150 lb; dumbbell lifts in the combined convention) are in `src/strengthLevelTables.ts` with their source and read date.
 
 ## Limits
