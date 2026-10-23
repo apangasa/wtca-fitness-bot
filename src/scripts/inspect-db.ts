@@ -3,7 +3,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { config } from '../config.js';
 import { db } from '../db/index.js';
-import { allTimeTotals, dailySeries, listUserWeights, userWeightLog } from '../db/queries.js';
+import { allTimeTotals, dailySeries, listUserWeights, userBodyLog, userWeightLog } from '../db/queries.js';
 import { renderLeaderboard, renderTrend } from '../render/charts.js';
 import { SERIES } from '../render/theme.js';
 import { closeBrowser } from '../render/browser.js';
@@ -45,6 +45,12 @@ const weightLog = userWeightLog();
 if (weightLog.length > 0) {
   console.log('Weight change log (append-only):');
   console.table(weightLog);
+}
+// Height and birth year (/height, /age): every change, read-only.
+const bodyLog = userBodyLog();
+if (bodyLog.length > 0) {
+  console.log('\nHeight and birth year change log (append-only):');
+  console.table(bodyLog);
 }
 
 const overflow = users.filter((u) => u.color_slot >= SERIES.length);

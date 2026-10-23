@@ -1,6 +1,7 @@
 // Points for one entry: reps x price per rep at the logged weight. Pure and unrounded; method in docs/points.md.
 import { BODYWEIGHT_TABLES, LIFT_TABLES, REPS_TABLES, tableAt, type Row } from './strengthLevelTables.js';
 import { BODY_LB, type WeightMode } from './exercises.js';
+import { anthroFactor, isHeightFamily, NO_ANTHRO, type Anthro, type HeightFamily } from './anthropometry.js';
 
 /** Strength Level's share of 1RM that `r` reps to failure represent: Brzycki below 8, Epley above 10, blended between. */
 export function repsToFraction(r: number): number {
@@ -119,6 +120,25 @@ export const LIFT_BODY_SHARE: Record<string, number> = {
   hipthrust: DECISIONS.K_HIP_THRUST,
 };
 
+/**
+ * Lift tables whose lifts take a height and age coefficient (docs/points-height.md): a lift Isenmann measured, or the same movement
+ * with another implement, grip or bench angle, or a lift measured directly. Every other lift has none.
+ */
+export const LIFT_HEIGHT_FAMILY: Record<string, HeightFamily> = {
+  benchpress: 'press',
+  narrowbench: 'press',
+  inclinebenchpress: 'press',
+  dbbench: 'press',
+  inclinedumbbellpress: 'press',
+  chestpress: 'press',
+  deadlift: 'hinge',
+  rdl: 'hinge',
+  dbrdl: 'hinge',
+  squat: 'squat',
+  legpress: 'squat',
+  singlelegpress: 'squat',
+};
+
 export interface BodyweightSpec {
   kind: 'bw';
   // Price of a rep with no added load at 150 lb.
@@ -136,13 +156,14 @@ export interface BodyweightSpec {
   // One side at a time, each side's reps logged: every rep pays ONE_SIDE_FACTOR of the curve.
   oneSide?: boolean;
   // With a weight logged, the rep is priced on this lift table instead (k x body weight counted as load); with none, it pays p.
-  loaded?: { oneRM: number[]; table: string; k: number };
+  loaded?: { oneRM: number[]; table: string; k: number; height?: HeightFamily };
 }
 
 export type PricingSpec =
   | { kind: 'flat'; p: number; unit?: string; table?: string }
   // k: share of body weight the lift also moves, counted as load on top of the logged weight and the table's 1RMs.
-  | { kind: 'lift'; oneRM: number[]; table?: string; oneSide?: boolean; k?: number }
+  // height: the lift whose height and age coefficients move its 1RMs (src/anthropometry.ts); none = not adjusted.
+  | { kind: 'lift'; oneRM: number[]; table?: string; oneSide?: boolean; k?: number; height?: HeightFamily }
   | BodyweightSpec;
 
 // Pull-ups are anchored on effective 1RMs (body weight + added weight): the reps table shows "<1" at Beginner.
@@ -151,7 +172,12 @@ const PULLUP_EFFECTIVE_1RM = [144, 178, 216, 259];
 const PULLUP_FLAT_REPS: [number, number] = [7, 14];
 // docs/points-lifts.md, "Squat": a squat with a weight is priced on the barbell squat table (150 lb row), body weight counted as load.
 // Season 2 only: per-set pricing in Season 3 replaces this split between no weight and a weight.
-export const SQUAT_LOADED = { oneRM: [132, 184, 247, 320], table: 'squat', k: DECISIONS.K_FULL };
+export const SQUAT_LOADED: { oneRM: number[]; table: string; k: number; height: HeightFamily } = {
+  oneRM: [132, 184, 247, 320],
+  table: 'squat',
+  k: DECISIONS.K_FULL,
+  height: 'squat',
+};
 
 function bodyweight(
   k: number,
@@ -196,7 +222,15 @@ export function catalogPricing(key: string): PricingSpec | null {
   const lift = LIFT_1RM[key];
   if (lift) {
     const k = LIFT_BODY_SHARE[key];
-    return { kind: 'lift', oneRM: [...lift], table: key, ...(ONE_SIDE_LIFTS.has(key) ? { oneSide: true } : {}), ...(k !== undefined ? { k } : {}) };
+    const height = LIFT_HEIGHT_FAMILY[key];
+    return {
+      kind: 'lift',
+      oneRM: [...lift],
+      table: key,
+      ...(ONE_SIDE_LIFTS.has(key) ? { oneSide: true } : {}),
+      ...(k !== undefined ? { k } : {}),
+      ...(height !== undefined ? { height } : {}),
+    };
   }
   const flat = FLAT[key];
   if (flat) return { kind: 'flat', p: flat.p, ...(flat.unit ? { unit: flat.unit } : {}), ...(flat.table ? { table: flat.table } : {}) };
@@ -254,11 +288,12 @@ export function flatCurve(p: number): Curve {
 }
 
 /**
- * A lift curve: anchors follow body weight when the lift has a table. With k (a lift that also moves the body), k x body weight is
- * added to the logged weight and to every 1RM, and no weight is a rep with the body alone; without k, no weight scores 0.
+ * A lift curve: anchors follow body weight when the lift has a table, then are multiplied by the person's height and age factor (1 for a
+ * lift with no family). With k (a lift that also moves the body), k x body weight is added to the logged weight and to every 1RM after
+ * that, since the studies behind the factor measured the bar alone; no weight is a rep with the body alone. Without k, no weight scores 0.
  */
-export function liftCurve(oneRM: readonly number[], table?: string, bodyLb: number = SCORING.BODY_LB, k?: number): Curve {
-  const anchors = anchorsAt(oneRM, table, LIFT_TABLES, bodyLb);
+export function liftCurve(oneRM: readonly number[], table?: string, bodyLb: number = SCORING.BODY_LB, k?: number, factor = 1): Curve {
+  const anchors = anchorsAt(oneRM, table, LIFT_TABLES, bodyLb).map((x) => x * factor);
   if (k === undefined) {
     const price = liftPrice(anchors);
     return (w) => (w === null ? 0 : price(w));
@@ -270,12 +305,13 @@ export function liftCurve(oneRM: readonly number[], table?: string, bodyLb: numb
 
 /**
  * Bodyweight curve: load = k x body weight + added load, scaled so a no-load rep pays p; assisted subtracts the assistance (none logged = 0).
- * With `loaded`, no weight pays p and a weight is priced on that lift table instead.
+ * With `loaded`, no weight pays p and a weight is priced on that lift table instead, its 1RMs moved by the height and age factor of its family.
  */
-export function bodyweightCurve(spec: BodyweightSpec, bodyLb: number = SCORING.BODY_LB): Curve {
+export function bodyweightCurve(spec: BodyweightSpec, bodyLb: number = SCORING.BODY_LB, anthro: Anthro = NO_ANTHRO): Curve {
   if (spec.loaded) {
     const p = spec.p * flatFactor(spec.table, bodyLb);
-    const lift = liftCurve(spec.loaded.oneRM, spec.loaded.table, bodyLb, spec.loaded.k);
+    const factor = anthroFactor(spec.loaded.height, bodyLb, anthro);
+    const lift = liftCurve(spec.loaded.oneRM, spec.loaded.table, bodyLb, spec.loaded.k, factor);
     return (w) => (w === null || w <= 0 ? p : lift(w));
   }
   const b = spec.table !== undefined ? bodyLb : SCORING.BODY_LB;
@@ -297,15 +333,16 @@ export function bodyweightCurve(spec: BodyweightSpec, bodyLb: number = SCORING.B
 /** What an exercise with no usable pricing record pays: nothing. Pending exercises are the intended case; any other is reported (see curveForRow). */
 export const unpricedCurve: Curve = () => 0;
 
-export function buildCurve(spec: PricingSpec, bodyLb: number = SCORING.BODY_LB): Curve {
+/** A curve for one person: body weight for every kind, height and age only for a lift with a family. */
+export function buildCurve(spec: PricingSpec, bodyLb: number = SCORING.BODY_LB, anthro: Anthro = NO_ANTHRO): Curve {
   switch (spec.kind) {
     case 'flat':
       return flatCurve(spec.p * flatFactor(spec.table, bodyLb));
     case 'lift':
       if (spec.oneRM.length !== 4) throw new Error('a lift needs four 1RM anchors');
-      return oneSided(liftCurve(spec.oneRM, spec.table, bodyLb, spec.k), spec.oneSide);
+      return oneSided(liftCurve(spec.oneRM, spec.table, bodyLb, spec.k, anthroFactor(spec.height, bodyLb, anthro)), spec.oneSide);
     case 'bw':
-      return oneSided(bodyweightCurve(spec, bodyLb), spec.oneSide);
+      return oneSided(bodyweightCurve(spec, bodyLb, anthro), spec.oneSide);
   }
 }
 
@@ -345,6 +382,7 @@ export function pricingProblem(spec: unknown): string | null {
   const kValid = (k: unknown): boolean => typeof k === 'number' && k > 0 && k <= MAX_K;
   if (s.kind === 'lift') {
     if (!anchors(s.oneRM)) return 'a lift needs four increasing positive 1RMs (Beginner, Novice, Intermediate, Advanced)';
+    if (s.height !== undefined && !isHeightFamily(s.height)) return 'height is press, squat or hinge';
     return s.k === undefined || kValid(s.k) ? null : kProblem;
   }
   if (!price(s.p)) return `a bodyweight price is a number from 0 to ${MAX_PRICE}`;
@@ -358,6 +396,7 @@ export function pricingProblem(spec: unknown): string | null {
     if (!anchors(l.oneRM)) return 'loaded needs four increasing positive 1RMs (Beginner, Novice, Intermediate, Advanced)';
     if (typeof l.table !== 'string' || !tableNamed(LIFT_TABLES, l.table)) return `loaded names "${String(l.table)}", which is not a lift table in src/strengthLevelTables.ts`;
     if (!kValid(l.k)) return kProblem;
+    if (l.height !== undefined && !isHeightFamily(l.height)) return 'loaded height is press, squat or hinge';
   }
   return null;
 }
@@ -411,10 +450,10 @@ export interface PricingRow {
 
 const reported = new Set<string>();
 
-/** The curve for a row at a body weight: its pricing record. No usable record pays 0, and says so once unless the exercise is pending. */
-export function curveForRow(row: PricingRow, bodyLb: number = SCORING.BODY_LB): Curve {
+/** The curve for a row for one person: its pricing record. No usable record pays 0, and says so once unless the exercise is pending. */
+export function curveForRow(row: PricingRow, bodyLb: number = SCORING.BODY_LB, anthro: Anthro = NO_ANTHRO): Curve {
   const spec = parsePricing(row.pricing);
-  if (spec) return buildCurve(spec, bodyLb);
+  if (spec) return buildCurve(spec, bodyLb, anthro);
   const id = row.key ?? '?';
   if (!row.pending && !reported.has(id)) {
     reported.add(id);

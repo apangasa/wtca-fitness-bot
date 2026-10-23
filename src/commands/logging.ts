@@ -17,6 +17,7 @@ import {
   addEntry,
   dayDetails,
   dayTotals,
+  anthroOf,
   bodyWeightOf,
   ensureUser,
   getExercise,
@@ -89,8 +90,8 @@ async function applyLog(
 
   const today = dayTotals(guildId, dayKey).find((t) => t.userId === user.id && t.exerciseKey === ex.key);
 
-  // Every exercise gets this reply, so points are never mistaken for reps. The price uses the person's own body weight.
-  const perUnit = priceAt(ex, stored, bodyWeightOf(user.id));
+  // Every exercise gets this reply, so points are never mistaken for reps. The price uses the person's own body weight, height and age.
+  const perUnit = priceAt(ex, stored, bodyWeightOf(user.id), anthroOf(user.id, dayKey));
   const note = stored !== null && ex.weightNote ? ` (${ex.weightNote})` : '';
   const per = ex.unit === 'reps' ? 'rep' : ex.unit === 'flights' ? 'flight' : ex.unit === 'jumps' ? 'jump' : ex.unit;
   const lines = [

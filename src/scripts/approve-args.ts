@@ -2,12 +2,14 @@
 // kinds of price at once, or a list that is not four numbers is an error and never a guess. Pure, so check-guards.ts can test it.
 import { parseArgs } from 'node:util';
 import { APPROVE_UNITS, type Unit } from '../exercises.js';
-import type { BodyweightSpec, PricingSpec } from '../scoring.js';
+import { isHeightFamily, HEIGHT_FAMILIES } from '../anthropometry.js';
+import { LIFT_HEIGHT_FAMILY, type BodyweightSpec, type PricingSpec } from '../scoring.js';
 
 export const APPROVE_USAGE =
   'usage: approve <key> --label "Name" (--flat <p> [--unit mi|yd|flights|jumps] | --lift <b,n,i,a> | --bw <p> --k <share> (--reps <b,n,i,a> | --onerm <b,n,i,a>) [--assist])\n' +
-  '                    --table <key> [--one-side] [--note "..."] [--as <new-key>] [--dry-run]\n' +
+  '                    --table <key> [--one-side] [--height press|squat|hinge] [--note "..."] [--as <new-key>] [--dry-run]\n' +
   '--one-side (lift or bw): done one arm or leg at a time with each side\'s reps logged; every rep pays half.\n' +
+  '--height (lift only): the lift whose height and age coefficients apply (docs/points-height.md); a lift on a table that has one takes it without the flag.\n' +
   '       merge <key> --into <existing-key> [--dry-run]\n' +
   '--table is the exercise\'s by-bodyweight table in src/strengthLevelTables.ts and is required (only --flat 0, or a cardio price with --unit, may go without).\n' +
   '--dry-run runs it, shows how every total moves, and rolls it back.';
@@ -35,6 +37,7 @@ const OPTIONS = {
   onerm: { type: 'string' },
   assist: { type: 'boolean' },
   'one-side': { type: 'boolean' },
+  height: { type: 'string' },
   unit: { type: 'string' },
   table: { type: 'string' },
   note: { type: 'string' },
@@ -77,7 +80,7 @@ export function parseApproveArgs(argv: string[]): ApproveCommand {
     return { command, key, into: values.into, dryRun };
   }
 
-  only(['label', 'flat', 'lift', 'bw', 'k', 'reps', 'onerm', 'assist', 'one-side', 'unit', 'table', 'note', 'as', 'dry-run']);
+  only(['label', 'flat', 'lift', 'bw', 'k', 'reps', 'onerm', 'assist', 'one-side', 'height', 'unit', 'table', 'note', 'as', 'dry-run']);
   if (!values.label?.trim()) throw new Error('--label "Name" is required');
   const kinds = (['flat', 'lift', 'bw'] as const).filter((n) => values[n] !== undefined);
   if (kinds.length !== 1) throw new Error('give exactly one of --flat, --lift or --bw');
@@ -87,9 +90,13 @@ export function parseApproveArgs(argv: string[]): ApproveCommand {
     only(['label', 'flat', 'unit', 'table', 'note', 'as', 'dry-run']);
     pricing = { kind: 'flat', p: number('flat', values.flat!) };
   } else if (kinds[0] === 'lift') {
-    only(['label', 'lift', 'one-side', 'table', 'note', 'as', 'dry-run']);
+    only(['label', 'lift', 'one-side', 'height', 'table', 'note', 'as', 'dry-run']);
     pricing = { kind: 'lift', oneRM: list4('lift', values.lift!) };
     if (values['one-side']) pricing.oneSide = true;
+    if (values.height !== undefined) {
+      if (!isHeightFamily(values.height)) throw new Error(`--height is ${HEIGHT_FAMILIES.join(', ')}, not "${values.height}"`);
+      pricing.height = values.height;
+    }
   } else {
     only(['label', 'bw', 'k', 'reps', 'onerm', 'assist', 'one-side', 'table', 'note', 'as', 'dry-run']);
     if (values.k === undefined) throw new Error('--k <share> is required with --bw');
@@ -104,6 +111,10 @@ export function parseApproveArgs(argv: string[]): ApproveCommand {
   if (values.table !== undefined) {
     if (values.table === '') throw new Error('--table needs a table key');
     pricing.table = values.table;
+    // A lift on a table with a height family takes it, as migration 16 gave every such lift already priced.
+    if (pricing.kind === 'lift' && pricing.height === undefined && Object.hasOwn(LIFT_HEIGHT_FAMILY, values.table)) {
+      pricing.height = LIFT_HEIGHT_FAMILY[values.table];
+    }
   }
   const unit = values.unit ?? 'reps';
   if (!APPROVE_UNITS.includes(unit as Unit) || unit === 'reps' && values.unit !== undefined) {

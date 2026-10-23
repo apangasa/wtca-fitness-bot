@@ -101,7 +101,8 @@ Anyone can set an optional body weight with `/weight set` (110-310 lb, the range
 - The data is `src/strengthLevelTables.ts` (source and read date in its header). An exercise follows body weight only if its pricing record has a `table` (the catalog ones do; `approve-exercise --table <key>` adds one for a newly priced exercise; `approve-exercise` refuses to price without one).
 - The current value applies to all of that person's history in a running season; closed seasons stay frozen in `season_standings`.
 - Storage: `user_weight` (current) and `user_weight_log` (append-only, a clear is a NULL weight). Admin view: `tsx src/scripts/inspect-db.ts` lists both (read-only); on the VM: `node tools/live-db.mjs "SELECT * FROM user_weight_log"`.
-- Scoring picks the weight up through the `entry_points(key, amount, weight, user_id)` SQL function; the bot reloads weights when another process writes the database, and `/weight` itself invalidates the cache.
+- Scoring picks the weight up from the entry through the `entry_points(key, amount, weight, body_lb, height_cm, age)` SQL function; the bot reloads when another process writes the database, and `/weight` itself invalidates the cache.
+- Height and birth year (`/height`, `/age`) work the same way for the lifts listed in `docs/points-height.md`: `user_body` holds the current values, `user_body_log` every change, and each entry keeps the values it was logged with.
 
 ## Querying the live database
 

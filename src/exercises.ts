@@ -19,7 +19,7 @@ export const MAX_LOAD_LB = 2000;
 
 /** Slash commands that are not exercises; an exercise key equal to one would replace it. */
 export const RESERVED_COMMAND_NAMES: ReadonlySet<string> = new Set([
-  'undo', 'today', 'leaderboard', 'race', 'me', 'seasons', 'name', 'recap', 'cleanup', 'new', 'queue', 'weight',
+  'undo', 'today', 'leaderboard', 'race', 'me', 'seasons', 'name', 'recap', 'cleanup', 'new', 'queue', 'weight', 'height', 'age',
 ]);
 
 /** Player-typed text made safe to print: one line, no control characters, capped. For names and notes shown outside Discord. */

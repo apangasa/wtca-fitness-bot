@@ -1,6 +1,6 @@
 # Weight class
 
-How a person's body weight enters scoring. Overview: [points.md](points.md). The lift curve it adjusts: [points-lifts.md](points-lifts.md).
+How a person's body weight enters scoring. Overview: [points.md](points.md). The lift curve it adjusts: [points-lifts.md](points-lifts.md). Height and age, which move some lifts on top of body weight: [points-height.md](points-height.md).
 
 ## The rule
 

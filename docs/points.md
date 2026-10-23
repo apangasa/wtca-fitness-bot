@@ -17,6 +17,7 @@ An entry stores an exercise, total reps (or a distance), an optional weight and 
 - **Points = reps (or distance) × price per rep.**
 - **Bodyweight exercises** (push-ups, pull-ups, squats, burpees and so on) pay a flat price per rep, from the row for your weight class (150 lb unless you set a weight).
 - **Weighted lifts** pay a price per rep that depends on the weight lifted. Heavier weights pay more than in proportion, because heavier weights are rarer.
+- **Height and age** (optional, `/height` and `/age`) move the bench, squat (with a weight), deadlift and leg press families against lifters of the same height and age ([points-height.md](points-height.md)). Unset, they change nothing.
 - **Weighted bodyweight exercises** (an added load, or an assisted pull-up) follow the lift curve, with body weight counted as part of the load.
 - **Cardio** pays per mile (run) or per yard (swim).
 - **One-side exercises** (one arm or one leg at a time, every side's reps logged) pay half per rep, so both sides together pay what a set using both sides pays ([points-lifts.md](points-lifts.md#one-side-exercises)).
@@ -71,6 +72,7 @@ Every lift in the bot is priced the same way, from Strength Level's 1RM table fo
 | [points-lifts.md](points-lifts.md) | The price curve for weighted lifts, weighted bodyweight exercises, assisted pull-ups and weight conventions |
 | [points-cardio.md](points-cardio.md) | Run and swim: the principle, the lifting rate, the reference paces and the limits |
 | [points-weight-class.md](points-weight-class.md) | `/weight`: scoring loaded lifts against a person's own weight class |
+| [points-height.md](points-height.md) | `/height` and `/age`: scoring the bench, squat, deadlift and leg press families against a person's height and age |
 | [points-new-exercises.md](points-new-exercises.md) | How to price an exercise that is not in the catalog yet |
 
 ## In the bot

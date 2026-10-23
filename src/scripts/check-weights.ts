@@ -65,7 +65,7 @@ if (reopen) {
   check('reopen: a curve tuned in the database survives a restart', JSON.stringify(bench.pricing) === JSON.stringify({ kind: 'lift', oneRM: [100, 140, 190, 240] }), JSON.stringify(bench.pricing));
   check('reopen: a hand-set run price is not put back to 521 by the migration', q.getExercise('run')!.pricing?.kind === 'flat' && (q.getExercise('run')!.pricing as { p: number }).p === 777);
   check('reopen: burpees tuned to 11 are not repriced again', (q.getExercise('burpees')!.pricing as { p: number }).p === 11);
-  check('reopen: the migration did not run again (user_version 16, an unusable record is not repaired behind your back)', userVersion() === 16 && q.getExercise('abrolls')!.pricing === null);
+  check('reopen: the migration did not run again (user_version 17, an unusable record is not repaired behind your back)', userVersion() === 17 && q.getExercise('abrolls')!.pricing === null);
   const machineRe = q.getExercise('machinelatpulldown')!;
   check('reopen: migration 9 moved the live-style machine lat pulldown record from the doubled to the x1.5 anchors (and its reference weight)', machineRe.pricing?.kind === 'lift' && machineRe.pricing.oneRM.join() === '133.5,186,249,322.5' && machineRe.refWeight !== null && near(machineRe.refWeight, (29 / 36) * 186, 1e-9), JSON.stringify(machineRe));
   const bssRe = q.getExercise('barbellbulgariansplitsquat')!;
@@ -74,6 +74,9 @@ if (reopen) {
   check('reopen: migration 15 gave an approved lift on the good morning table k by its table', gm.pricing?.kind === 'lift' && gm.pricing.k === 0.678 && gm.pricing.oneRM.join() === '47,91,152,230', JSON.stringify(gm.pricing));
   const bench15 = q.getExercise('benchpress')!;
   check('reopen: migration 15 left a lift whose body does not move alone', bench15.pricing?.kind === 'lift' && bench15.pricing.k === undefined);
+  const dbb = q.getExercise('dbbench')!;
+  check('reopen: migration 17 gave a live-style lift on a family table its family and kept its tuned anchors', dbb.pricing?.kind === 'lift' && dbb.pricing.height === 'press' && dbb.pricing.oneRM.join() === '70,100,150,200', JSON.stringify(dbb.pricing));
+  check('reopen: migration 17 left a lift on a table with no family alone', (q.getExercise('overheadpress')!.pricing as { height?: string }).height === undefined);
   check('reopen: nothing was duplicated', q.listExercises().filter((e) => e.key === 'benchpress').length === 1);
   check('reopen: a body weight set with /weight survives a restart', q.getUserWeight('u-wt') === 130 && q.userWeightLog().length >= 3);
   q.ensureUser('u-re', 'Reopen');
@@ -90,6 +93,7 @@ const squat = q.getExercise('squats')!;
 check('squats become weighted, add mode, ref 150', squat.refWeight === 150 && squat.weightMode === 'add');
 check('squats carry the bodyweight curve record', squat.pricing?.kind === 'bw' && near(squat.pricing.p, implied(26, 58)), JSON.stringify(squat.pricing));
 check('migration 16: stored squats price a weight on the barbell squat table, k = 1', squat.pricing?.kind === 'bw' && squat.pricing.loaded?.table === 'squat' && squat.pricing.loaded.oneRM.join() === '132,184,247,320' && squat.pricing.loaded.k === 1, JSON.stringify(squat.pricing));
+check('migration 17: the squat with a weight takes the squat family on its barbell table', squat.pricing?.kind === 'bw' && squat.pricing.loaded?.height === 'squat', JSON.stringify(squat.pricing));
 check('the old /leg-press key is gone', q.getExercise('leg-press') === null);
 const legPress = q.getExercise('legpress')!;
 check('leg press is now legpress, a lift priced by its 1RM table', legPress.pricing?.kind === 'lift' && legPress.refWeight !== null, JSON.stringify(legPress.pricing));
@@ -133,7 +137,7 @@ const oldRun = q.dayTotals(GUILD, '2026-09-12').find((t) => t.exerciseKey === 'r
 check('the 3-mile run logged before was backfilled to 3 x 521.14', !!oldRun && near(oldRun.points, 3 * RUN), String(oldRun?.points));
 const swimEx = q.getExercise('swim');
 check('swim exists at 1.0286 per yard', swimEx?.pricing?.kind === 'flat' && near(swimEx.pricing.p, SWIM) && swimEx.unit === 'yd', JSON.stringify(swimEx));
-check('the one-shot upgrades are recorded (user_version 16)', userVersion() === 16);
+check('the one-shot upgrades are recorded (user_version 17)', userVersion() === 17);
 const machineLat = q.getExercise('machinelatpulldown')!;
 check('machine lat pulldown is seeded as a lift on the lat pulldown anchors x1.5 and its own table', machineLat.label === 'Machine Lat Pulldown' && machineLat.pricing?.kind === 'lift' && machineLat.pricing.table === 'machinelatpulldown' && machineLat.pricing.oneRM.join() === '133.5,186,249,322.5' && machineLat.refWeight !== null, JSON.stringify(machineLat));
 check('a stack setting of 1.5w on the machine lat pulldown pays what w pays on the plain lat pulldown, at 150 lb and at 220 lb', [150, 220].every((bw) => [50, 72.5, 90, 100].every((w) => near(buildCurve(catalogPricing('machinelatpulldown')!, bw)(1.5 * w), buildCurve(catalogPricing('latpulldown')!, bw)(w), 1e-9))));
@@ -585,6 +589,108 @@ const { LIFT_1RM } = S;
   q.undoLastEntry(GUILD, 'u-wt', dayKeyFor());
 }
 
+{
+  // Height and age (docs/points-height.md): neutral when unset, exactly 1 at the expected height and reference age, applied to the bar 1RMs
+  // of family lifts only, and stored per entry like body weight.
+  const A = await import('../anthropometry.js');
+  const lifts = Object.keys(S.LIFT_1RM);
+  const withFamily = (key: string): boolean => (S.catalogPricing(key) as { height?: string }).height !== undefined;
+  const strip = (key: string) => {
+    const spec = { ...(S.catalogPricing(key) as Extract<ReturnType<typeof S.catalogPricing>, { kind: 'lift' }>) };
+    delete spec.height;
+    return spec;
+  };
+  const sameEverywhere = (key: string, anthro: { heightCm: number | null; age: number | null }): boolean =>
+    [120, 150, 220].every((bw) => [null, 0, 45, 135, 225].every((w) => near(S.buildCurve(S.catalogPricing(key)!, bw, anthro)(w), S.buildCurve(strip(key), bw)(w), 1e-12)));
+  check('height: the family tables are the bench variants, chest press, deadlift, RDLs and leg presses',
+    Object.keys(S.LIFT_HEIGHT_FAMILY).sort().join() === 'benchpress,chestpress,dbbench,dbrdl,deadlift,inclinebenchpress,inclinedumbbellpress,legpress,narrowbench,rdl,singlelegpress,squat' &&
+    Object.values(S.LIFT_HEIGHT_FAMILY).join() === 'press,press,press,press,press,press,hinge,hinge,hinge,squat,squat,squat');
+  check('height: unmeasured lifts carry no family (overhead and shoulder presses, split squats, good morning, hip thrust, rows, curls)',
+    ['overheadpress', 'machineshoulderpress', 'barbellbulgariansplitsquat', 'dbbulgariansplitsquat', 'row', 'bicepcurls', 'lateralraise'].every((k) => !withFamily(k)));
+  check('height: with no height or age set, every catalog lift prices exactly as without a family', lifts.every((k) => sameEverywhere(k, A.NO_ANTHRO)));
+  check('height: a lift with no family ignores height and age', lifts.filter((k) => !withFamily(k)).every((k) => sameEverywhere(k, { heightCm: 195, age: 60 })));
+  check('height: the expected height at the person\'s weight and the reference age change nothing',
+    lifts.filter(withFamily).every((k) => [120, 150, 220].every((bw) => [45, 135, 225].every((w) =>
+      near(S.buildCurve(S.catalogPricing(k)!, bw, { heightCm: A.expectedHeightCm(bw), age: A.AGE_REFERENCE })(w), S.buildCurve(strip(k), bw)(w), 1e-9)))));
+  // Worked independently: ANSUR II fit and Isenmann's bench coefficient, 190 cm at 150 lb.
+  const expected150 = Math.exp(4.6741 + 0.1113 * Math.log(150 * 0.45359237));
+  check('height: the expected height at 150 lb is 171.4 cm (ANSUR II fit)', near(A.expectedHeightCm(150), expected150, 1e-12) && near(expected150, 171.4, 0.05), String(expected150));
+  const benchF = Math.exp(-0.0158 * (190 - expected150));
+  const bench = S.catalogPricing('benchpress') as { oneRM: number[] };
+  check('height: 190 cm at 150 lb multiplies the bench anchors by exp(-0.0158 x (190 - 171.4))',
+    near(S.buildCurve(S.catalogPricing('benchpress')!, 150, { heightCm: 190, age: null })(135), S.buildCurve({ kind: 'lift', oneRM: bench.oneRM.map((x) => x * benchF) })(135), 1e-9));
+  check('height: taller pays more for the same bench, shorter less', [160, 175, 190].map((h) => S.buildCurve(S.catalogPricing('benchpress')!, 150, { heightCm: h, age: null })(135)).every((p, i, a) => i === 0 || p > a[i - 1]!));
+  const dl = S.catalogPricing('deadlift') as { oneRM: number[]; k: number };
+  const dlF = Math.exp(-0.01987 * (185 - A.expectedHeightCm(180)));
+  check('height: on a lift that also moves the body, the factor moves the bar 1RMs and the body is added after (deadlift, 185 cm, 180 lb)',
+    near(S.buildCurve(S.catalogPricing('deadlift')!, 180, { heightCm: 185, age: null })(225), S.buildCurve({ kind: 'lift', oneRM: dl.oneRM.map((x) => x * dlF), table: 'deadlift', k: dl.k }, 180)(225), 1e-9));
+  const ageF = Math.exp(0.00576 * 50 - 0.00018 * 50 * 50 - (0.00576 * 27.8 - 0.00018 * 27.8 * 27.8));
+  check('age: 50 multiplies the bench anchors by Isenmann\'s age terms against age 27.8',
+    near(S.buildCurve(S.catalogPricing('benchpress')!, 150, { heightCm: null, age: 50 })(135), S.buildCurve({ kind: 'lift', oneRM: bench.oneRM.map((x) => x * ageF) })(135), 1e-9));
+  {
+    // A squat with a weight is priced on the barbell squat table with the squat factor on its bar 1RMs; with no weight it stays the flat price.
+    const sq = S.catalogPricing('squats') as Extract<ReturnType<typeof S.catalogPricing>, { kind: 'bw' }>;
+    const sqF = Math.exp(-0.02408 * (190 - A.expectedHeightCm(180)));
+    const loaded = sq.loaded!;
+    check('height: a squat with a weight takes the squat factor on the barbell table bar 1RMs, body added after (190 cm, 180 lb)',
+      loaded.height === 'squat' && near(S.buildCurve(sq, 180, { heightCm: 190, age: null })(185), S.buildCurve({ kind: 'lift', oneRM: loaded.oneRM.map((x) => x * sqF), table: loaded.table, k: loaded.k }, 180)(185), 1e-9));
+    check('height: a squat with no weight is not moved by height', near(S.buildCurve(sq, 180, { heightCm: 190, age: 50 })(null), S.buildCurve(sq, 180)(null), 1e-12));
+  }
+  check('height: a family that is not press, squat or hinge is not a valid record', S.pricingProblem({ kind: 'lift', oneRM: [1, 2, 3, 4], height: 'pull' }) !== null && S.pricingProblem({ kind: 'lift', oneRM: [1, 2, 3, 4], height: 'press' }) === null);
+
+  // Stored per entry: the first value stamps the running season's entries that have none; later changes and clears touch only what follows.
+  q.ensureUser('h-a', 'HA'); q.ensureUser('h-b', 'HB');
+  const hd = '2026-10-05';
+  const hpts = (u: string, key: string, day = hd): number => q.dayTotals(GUILD, day).find((t) => t.userId === u && t.exerciseKey === key)?.points ?? NaN;
+  for (const u of ['h-a', 'h-b']) { q.addEntry(GUILD, u, 'benchpress', hd, 8, 135); q.addEntry(GUILD, u, 'bicepcurls', hd, 10, 50); }
+  q.addEntry(GUILD, 'h-b', 'benchpress', '2026-09-15', 8, 135);
+  const plain = 8 * model('benchpress', 135);
+  q.setUserHeight('h-b', 190);
+  const tall = 8 * S.buildCurve(S.catalogPricing('benchpress')!, 150, { heightCm: 190, age: null })(135);
+  check('height: a first height is stamped onto the running season\'s earlier entries', near(hpts('h-b', 'benchpress'), tall, 1e-9) && near(hpts('h-a', 'benchpress'), plain, 1e-9) && tall > plain);
+  check('height: a closed season\'s entries are not stamped', near(hpts('h-b', 'benchpress', '2026-09-15'), plain, 1e-9));
+  check('height: curls do not move with height', near(hpts('h-b', 'bicepcurls'), hpts('h-a', 'bicepcurls'), 1e-12));
+  q.setUserHeight('h-b', 170);
+  check('height: a later change does not rescore what was logged', near(hpts('h-b', 'benchpress'), tall, 1e-9));
+  q.addEntry(GUILD, 'h-b', 'benchpress', hd, 8, 135);
+  check('height: an entry after the change uses the new height', near(hpts('h-b', 'benchpress'), tall + 8 * S.buildCurve(S.catalogPricing('benchpress')!, 150, { heightCm: 170, age: null })(135), 1e-9));
+  q.undoLastEntry(GUILD, 'h-b', hd);
+  check('height: clear returns whether one was set and leaves the past alone', q.clearUserHeight('h-b') === true && q.clearUserHeight('h-b') === false && q.getUserBody('h-b').heightCm === null && near(hpts('h-b', 'benchpress'), tall, 1e-9));
+  check('height: values outside 150-206 cm are refused', [149.9, 206.1, NaN].every((h) => { try { q.setUserHeight('h-a', h); return false; } catch (e) { return e instanceof RangeError; } }) && q.getUserBody('h-a').heightCm === null);
+  q.setUserBirthYear('h-a', 1976, hd);
+  check('age: a birth year scores each entry at its year\'s age', near(hpts('h-a', 'benchpress'), 8 * S.buildCurve(S.catalogPricing('benchpress')!, 150, { heightCm: null, age: 50 })(135), 1e-9));
+  check('age: ages outside 16-64 are refused', [1950, 2015].every((y) => { try { q.setUserBirthYear('h-b', y, hd); return false; } catch (e) { return e instanceof RangeError; } }) && q.getUserBody('h-b').birthYear === null);
+  const logH = q.userBodyLog().filter((l) => l.userId === 'h-b');
+  check('height: every change is appended to the log, a clear as NULL', logH.map((l) => `${l.field}:${l.value}`).join() === 'height_cm:190,height_cm:170,height_cm:null', JSON.stringify(logH));
+  check('height: the log is append-only', (() => { try { db().prepare('DELETE FROM user_body_log').run(); return false; } catch { return true; } })());
+  q.clearUserBirthYear('h-a');
+  for (const u of ['h-a', 'h-b']) { q.undoLastEntry(GUILD, u, hd); q.undoLastEntry(GUILD, u, hd); }
+
+  // /height and /age: public replies, errors private, and the logging reply shows the person's own price.
+  check('/height and /age are registered', ['height', 'age'].every((n) => (buildCommands().get(n)!.data.options ?? []).map((o) => o.name).join() === 'set,show,clear'));
+  let h = await run('height', { user: 'u-ht', sub: 'set', integers: { feet: 6 }, numbers: { inches: 3 } });
+  check('/height set takes feet and inches and replies in the channel', h.ephemeral[0] === false && near(q.getUserBody('u-ht').heightCm!, 75 * 2.54, 1e-9) && h.replies[0]!.includes('191 cm'), h.replies[0]);
+  h = await run('height', { user: 'u-ht', sub: 'set', numbers: { cm: 180, inches: 2 } });
+  check('/height set refuses cm with inches, privately', h.ephemeral[0] === true && near(q.getUserBody('u-ht').heightCm!, 75 * 2.54, 1e-9), h.replies[0]);
+  h = await run('height', { user: 'u-ht', sub: 'set', numbers: { cm: 140 } });
+  check('/height set outside the range is refused, privately', h.ephemeral[0] === true && h.replies[0]!.includes('150') && h.replies[0]!.includes('206'), h.replies[0]);
+  h = await run('height', { user: 'u-other', sub: 'show', users: { user: 'u-ht' } });
+  check('/height show can look up another person', h.ephemeral[0] === false && h.replies[0]!.includes('191 cm'), h.replies[0]);
+  r = await run('benchpress', { user: 'u-ht', integers: { reps: 8 }, numbers: { weight: 135 } });
+  const ownH = formatPoints(q.priceAt(q.getExercise('benchpress')!, 135, 150, { heightCm: 75 * 2.54, age: null }));
+  check('the per-rep price shown after logging uses the person\'s height', r.replies[0]!.includes('(' + ownH + '/rep)') && ownH !== formatPoints(model('benchpress', 135)), r.replies[0]);
+  q.undoLastEntry(GUILD, 'u-ht', dayKeyFor());
+  h = await run('height', { user: 'u-ht', sub: 'clear' });
+  check('/height clear replies in the channel and forgets it', h.ephemeral[0] === false && q.getUserBody('u-ht').heightCm === null, h.replies[0]);
+  const thisYear = Number(dayKeyFor().slice(0, 4));
+  h = await run('age', { user: 'u-ht', sub: 'set', integers: { year: thisYear - 25 } });
+  check('/age set takes a birth year and replies with the age', h.ephemeral[0] === false && q.getUserBody('u-ht').birthYear === thisYear - 25 && h.replies[0]!.includes('age 25'), h.replies[0]);
+  h = await run('age', { user: 'u-ht', sub: 'set', integers: { year: thisYear - 70 } });
+  check('/age set outside 16-64 is refused, privately', h.ephemeral[0] === true && q.getUserBody('u-ht').birthYear === thisYear - 25, h.replies[0]);
+  h = await run('age', { user: 'u-ht', sub: 'clear' });
+  check('/age clear forgets it', h.ephemeral[0] === false && q.getUserBody('u-ht').birthYear === null, h.replies[0]);
+}
+
 // Tune values as an operator would; the reopen run proves they survive and the migration does not run again.
 db().prepare(`UPDATE exercises SET pricing = '{"kind":"flat","p":777}' WHERE key = 'run'`).run();
 db().prepare(`UPDATE exercises SET pricing = '{"kind":"lift","oneRM":[100,140,190,240]}' WHERE key = 'benchpress'`).run();
@@ -596,6 +702,8 @@ db().prepare(`UPDATE exercises SET pricing = '{"kind":"lift","oneRM":[178,248,33
 db().prepare(`UPDATE exercises SET pricing = '{"kind":"lift","oneRM":[47,91,152,230],"table":"goodmorning"}' WHERE key = 'cablerow'`).run();
 // A live-style split squat record from before migration 15 (no k, tuned anchors): the reopen run must add k and keep the anchors.
 db().prepare(`UPDATE exercises SET pricing = '{"kind":"lift","oneRM":[30,70,120,190],"table":"barbellbulgariansplitsquat","oneSide":true}' WHERE key = 'barbellbulgariansplitsquat'`).run();
+// A live-style bench variant from before migration 17 (no family, tuned anchors): the reopen run must add the family and keep the anchors.
+db().prepare(`UPDATE exercises SET pricing = '{"kind":"lift","oneRM":[70,100,150,200],"table":"dbbench"}' WHERE key = 'dbbench'`).run();
 db().pragma('user_version = 8');
 invalidateScoring();
 check('a record broken by hand (a price of 5000) scores 0 instead of falling back to the old columns', q.priceAt(q.getExercise('abrolls')!, null) === 0 && near(q.getExercise('abrolls')!.pointsPerRep, implied(7, 21), 1e-9));

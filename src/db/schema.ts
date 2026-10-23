@@ -50,6 +50,24 @@ CREATE TABLE IF NOT EXISTS user_weight_log (
   set_at     TEXT NOT NULL
 );
 
+-- Optional height and birth year (/height, /age), for the lifts that have a height and age coefficient (anthropometry.ts).
+-- Absent = the expected height at the person's weight and the reference age, which change nothing. The log is append-only
+-- (field is 'height_cm' or 'birth_year'; value NULL = cleared).
+CREATE TABLE IF NOT EXISTS user_body (
+  user_id    TEXT PRIMARY KEY,
+  height_cm  REAL,
+  birth_year INTEGER,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS user_body_log (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id    TEXT NOT NULL,
+  field      TEXT NOT NULL CHECK (field IN ('height_cm', 'birth_year')),
+  value      REAL,
+  set_at     TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS entries (
   id            INTEGER PRIMARY KEY AUTOINCREMENT,
   guild_id      TEXT NOT NULL,
@@ -62,7 +80,10 @@ CREATE TABLE IF NOT EXISTS entries (
   -- scores at the reference weight (the exercise's plain base price).
   weight        REAL,
   -- The person's body weight in lb when the entry was logged (a copy of user_weight then); NULL scores at the 150 lb default.
-  body_lb       REAL
+  body_lb       REAL,
+  -- Height in cm and birth year when the entry was logged (copies of user_body then); NULL is neutral.
+  height_cm     REAL,
+  birth_year    INTEGER
 );
 
 CREATE INDEX IF NOT EXISTS idx_entries_day      ON entries(guild_id, day_key);
@@ -148,6 +169,8 @@ DROP TRIGGER IF EXISTS season_standings_frozen_update;
 DROP TRIGGER IF EXISTS season_standings_frozen_delete;
 DROP TRIGGER IF EXISTS user_weight_log_append_update;
 DROP TRIGGER IF EXISTS user_weight_log_append_delete;
+DROP TRIGGER IF EXISTS user_body_log_append_update;
+DROP TRIGGER IF EXISTS user_body_log_append_delete;
 
 CREATE TRIGGER exercises_check_insert BEFORE INSERT ON exercises
 WHEN NEW.unit NOT IN ('reps','mi','km','yd','m','min','flights','jumps')
@@ -177,4 +200,10 @@ BEGIN SELECT RAISE(ABORT, 'user_weight_log is append-only'); END;
 
 CREATE TRIGGER user_weight_log_append_delete BEFORE DELETE ON user_weight_log
 BEGIN SELECT RAISE(ABORT, 'user_weight_log is append-only'); END;
+
+CREATE TRIGGER user_body_log_append_update BEFORE UPDATE ON user_body_log
+BEGIN SELECT RAISE(ABORT, 'user_body_log is append-only'); END;
+
+CREATE TRIGGER user_body_log_append_delete BEFORE DELETE ON user_body_log
+BEGIN SELECT RAISE(ABORT, 'user_body_log is append-only'); END;
 `;

@@ -5,6 +5,7 @@ import { config } from '../config.js';
 import { SEED_EXERCISES } from '../exercises.js';
 import {
   LIFT_BODY_SHARE,
+  LIFT_HEIGHT_FAMILY,
   SCORING,
   SQUAT_LOADED,
   assertCatalog,
@@ -19,6 +20,7 @@ import {
 import { dayKeyFor } from '../time.js';
 import { seasonRuleFor } from '../seasons.js';
 import { GUARDS, SCHEMA } from './schema.js';
+import type { Anthro } from '../anthropometry.js';
 
 let handle: Database.Database | null = null;
 
@@ -54,13 +56,13 @@ const exerciseRows = new Map<string, PricingRow>();
 const curves = new Map<string, Curve>();
 let seenDataVersion = -1;
 
-function curveFor(key: string, bodyLb: number): Curve | undefined {
-  const id = `${key}|${bodyLb}`;
+function curveFor(key: string, bodyLb: number, anthro: Anthro): Curve | undefined {
+  const id = `${key}|${bodyLb}|${anthro.heightCm}|${anthro.age}`;
   let curve = curves.get(id);
   if (!curve) {
     const row = exerciseRows.get(key);
     if (!row) return undefined;
-    curve = curveForRow(row, bodyLb);
+    curve = curveForRow(row, bodyLb, anthro);
     curves.set(id, curve);
   }
   return curve;
@@ -83,9 +85,10 @@ function refreshScoring(conn: Database.Database): void {
 }
 
 function registerScoring(conn: Database.Database): void {
-  // bodyLb is the body weight stored on the entry; NULL is the 150 lb default.
-  conn.function('entry_points', (key, amount, weight, bodyLb) => {
-    const curve = curveFor(key as string, (bodyLb as number | null) ?? SCORING.BODY_LB);
+  // bodyLb is the body weight stored on the entry; NULL is the 150 lb default. heightCm and age come from the entry too; NULL is neutral.
+  conn.function('entry_points', (key, amount, weight, bodyLb, heightCm, age) => {
+    const anthro = { heightCm: (heightCm as number | null) ?? null, age: (age as number | null) ?? null };
+    const curve = curveFor(key as string, (bodyLb as number | null) ?? SCORING.BODY_LB, anthro);
     return curve ? entryPoints(curve, amount as number, (weight as number | null) ?? null) : 0;
   });
   refreshScoring(conn);
@@ -134,6 +137,8 @@ function migrate(conn: Database.Database): void {
   const entryCols = conn.prepare('PRAGMA table_info(entries)').all() as { name: string }[];
   if (!entryCols.some((c) => c.name === 'weight')) conn.exec('ALTER TABLE entries ADD COLUMN weight REAL');
   if (!entryCols.some((c) => c.name === 'body_lb')) conn.exec('ALTER TABLE entries ADD COLUMN body_lb REAL');
+  if (!entryCols.some((c) => c.name === 'height_cm')) conn.exec('ALTER TABLE entries ADD COLUMN height_cm REAL');
+  if (!entryCols.some((c) => c.name === 'birth_year')) conn.exec('ALTER TABLE entries ADD COLUMN birth_year INTEGER');
 
   // Renames a key: copies the row (the key is a foreign key target), repoints the entries, drops the old row.
   const renameKey = conn.transaction((from: string, to: string) => {
@@ -387,6 +392,29 @@ function migrateAfterSeed(conn: Database.Database): void {
     const note = SEED_EXERCISES.find((e) => e.key === 'squats')?.weightNote;
     if (note) conn.prepare("UPDATE exercises SET weight_note = ? WHERE key = 'squats' AND weight_note = 'added load'").run(note);
     conn.pragma('user_version = 16');
+    invalidateScoring();
+  }
+  if (version < 17) {
+    // Migration 17: lifts on a table with a height and age coefficient (docs/points-height.md) carry their family. Catalog or approved from
+    // the queue, every lift priced on one of those tables keeps its tuned numbers and only gains the family. With no height or age set
+    // the family changes nothing, so no score moves until someone sets one. A squat with a weight (migration 16) takes the squat family on its
+    // barbell table the same way.
+    const rows = conn.prepare('SELECT key, pricing FROM exercises').all() as { key: string; pricing: string | null }[];
+    const set = conn.prepare('UPDATE exercises SET pricing = ?, points_per_rep = ? WHERE key = ?');
+    conn.transaction(() => {
+      for (const row of rows) {
+        const spec = parsePricing(row.pricing);
+        if (spec?.kind === 'bw' && spec.loaded !== undefined && spec.loaded.height === undefined && Object.hasOwn(LIFT_HEIGHT_FAMILY, spec.loaded.table)) {
+          const cols = pricingColumns({ ...spec, loaded: { ...spec.loaded, height: LIFT_HEIGHT_FAMILY[spec.loaded.table]! } });
+          set.run(cols.json, cols.display, row.key);
+          continue;
+        }
+        if (!spec || spec.kind !== 'lift' || spec.height !== undefined || spec.table === undefined || !Object.hasOwn(LIFT_HEIGHT_FAMILY, spec.table)) continue;
+        const cols = pricingColumns({ ...spec, height: LIFT_HEIGHT_FAMILY[spec.table]! });
+        set.run(cols.json, cols.display, row.key);
+      }
+    })();
+    conn.pragma('user_version = 17');
     invalidateScoring();
   }
 }

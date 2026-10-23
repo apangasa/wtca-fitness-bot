@@ -9,7 +9,7 @@ Players log an unknown exercise with `/new` (reps, optional weight, sets and not
 ## Pricing procedure
 
 1. **Find the exercise on Strength Level** (men, 150 lb): its standards page says whether the table is in reps or in 1RM. Check what the table counts (per dumbbell, per side, one leg or two) and whether the movement matches what was logged.
-2. **Choose the kind of price from the table:**
+2. **Choose the kind of price from the table.** A lift on a table in [points-height.md](points-height.md#which-lifts) takes that table's height family on its own; a lift on any other table takes one (`--height`) only with a study that measures it.
 
 | Table | Kind | Price |
 |---|---|---|

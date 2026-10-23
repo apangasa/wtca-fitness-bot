@@ -10,6 +10,7 @@ import {
   type PricingSpec,
 } from '../scoring.js';
 import { BW_MAX, BW_MIN, inBodyweightRange } from '../strengthLevelTables.js';
+import { AGE_MAX, AGE_MIN, HEIGHT_MAX_CM, HEIGHT_MIN_CM, inAgeRange, inHeightRange, NO_ANTHRO, type Anthro } from '../anthropometry.js';
 import { closedSeasons, seasonRuleFor, type Season } from '../seasons.js';
 import { dayKeyFor, previousDayKey } from '../time.js';
 import { db, invalidateScoring } from './index.js';
@@ -60,12 +61,104 @@ export interface EntryRow {
   weight: number | null;
 }
 
-/** SQL for one entry's points (e = entries); calls the registered entry_points function. */
-export const POINTS_SQL = 'entry_points(e.exercise_key, e.amount, e.weight, e.body_lb)';
+/** SQL for one entry's points (e = entries); calls the registered entry_points function. Age is the entry's year less the birth year. */
+export const POINTS_SQL =
+  'entry_points(e.exercise_key, e.amount, e.weight, e.body_lb, e.height_cm, ' +
+  'CASE WHEN e.birth_year IS NULL THEN NULL ELSE CAST(substr(e.day_key, 1, 4) AS INTEGER) - e.birth_year END)';
 
-/** Price per rep at a logged weight (null = none) for a person of that body weight. */
-export function priceAt(ex: Pick<ExerciseRow, 'pricing'>, weight: number | null, bodyLb: number = SCORING.BODY_LB): number {
-  return (ex.pricing ? buildCurve(ex.pricing, bodyLb) : unpricedCurve)(weight);
+/** Price per rep at a logged weight (null = none) for a person of that body weight, height and age. */
+export function priceAt(
+  ex: Pick<ExerciseRow, 'pricing'>,
+  weight: number | null,
+  bodyLb: number = SCORING.BODY_LB,
+  anthro: Anthro = NO_ANTHRO,
+): number {
+  return (ex.pricing ? buildCurve(ex.pricing, bodyLb, anthro) : unpricedCurve)(weight);
+}
+
+/** Height and birth year set with /height and /age; null for each that is not set. */
+export function getUserBody(userId: string): { heightCm: number | null; birthYear: number | null } {
+  const r = db().prepare('SELECT height_cm, birth_year FROM user_body WHERE user_id = ?').get(userId) as
+    | { height_cm: number | null; birth_year: number | null }
+    | undefined;
+  return { heightCm: r?.height_cm ?? null, birthYear: r?.birth_year ?? null };
+}
+
+/** Age from a birth year on a day (the year's difference; it can run a year high before the birthday). */
+export const ageOn = (birthYear: number, dayKey: string): number => Number(dayKey.slice(0, 4)) - birthYear;
+
+/** Height and age used for scoring today: the set values, else null (neutral). */
+export function anthroOf(userId: string, dayKey: string = dayKeyFor()): Anthro {
+  const body = getUserBody(userId);
+  return { heightCm: body.heightCm, age: body.birthYear === null ? null : ageOn(body.birthYear, dayKey) };
+}
+
+type BodyField = 'height_cm' | 'birth_year';
+
+// Sets or clears one field of user_body, logged append-only. A person's first value for a field also goes onto their earlier entries in
+// the running season that have none, as with /weight.
+function writeBodyField(userId: string, field: BodyField, value: number | null): boolean {
+  const conn = db();
+  const now = DateTime.utc().toISO();
+  const changed = conn.transaction(() => {
+    const current = getUserBody(userId)[field === 'height_cm' ? 'heightCm' : 'birthYear'];
+    if (value === null && current === null) return false;
+    if (value !== null) {
+      const first = conn.prepare('SELECT 1 FROM user_body_log WHERE user_id = ? AND field = ?').get(userId, field) === undefined;
+      if (first) {
+        conn
+          .prepare(`UPDATE entries SET ${field} = ? WHERE user_id = ? AND ${field} IS NULL AND day_key >= ?`)
+          .run(value, userId, seasonRuleFor(dayKeyFor()).startDay);
+      }
+    }
+    conn
+      .prepare(
+        `INSERT INTO user_body (user_id, ${field}, updated_at) VALUES (?, ?, ?)
+         ON CONFLICT(user_id) DO UPDATE SET ${field} = excluded.${field}, updated_at = excluded.updated_at`,
+      )
+      .run(userId, value, now);
+    conn.prepare('INSERT INTO user_body_log (user_id, field, value, set_at) VALUES (?, ?, ?, ?)').run(userId, field, value, now);
+    return true;
+  })();
+  invalidateScoring();
+  return changed;
+}
+
+/** Sets a height in cm; throws RangeError outside the range of the study behind the coefficients. */
+export function setUserHeight(userId: string, cm: number): void {
+  if (!inHeightRange(cm)) throw new RangeError(`Height must be between ${HEIGHT_MIN_CM} and ${HEIGHT_MAX_CM} cm (the range of the study the height adjustment comes from).`);
+  writeBodyField(userId, 'height_cm', cm);
+}
+
+/** Clears the height (logged as NULL); returns whether one was set. */
+export function clearUserHeight(userId: string): boolean {
+  return writeBodyField(userId, 'height_cm', null);
+}
+
+/** Sets a birth year; throws RangeError when today's age is outside the range of the study behind the coefficients. */
+export function setUserBirthYear(userId: string, year: number, dayKey: string = dayKeyFor()): void {
+  if (!Number.isInteger(year) || !inAgeRange(ageOn(year, dayKey))) {
+    throw new RangeError(`Age must be between ${AGE_MIN} and ${AGE_MAX} (the range of the study the age adjustment comes from).`);
+  }
+  writeBodyField(userId, 'birth_year', year);
+}
+
+/** Clears the birth year (logged as NULL); returns whether one was set. */
+export function clearUserBirthYear(userId: string): boolean {
+  return writeBodyField(userId, 'birth_year', null);
+}
+
+/** The height and birth year change log (read by scripts/inspect-db.ts). */
+export function userBodyLog(): { id: number; userId: string; field: BodyField; value: number | null; setAt: string }[] {
+  return (
+    db().prepare('SELECT id, user_id, field, value, set_at FROM user_body_log ORDER BY id').all() as {
+      id: number;
+      user_id: string;
+      field: BodyField;
+      value: number | null;
+      set_at: string;
+    }[]
+  ).map((r) => ({ id: r.id, userId: r.user_id, field: r.field, value: r.value, setAt: r.set_at }));
 }
 
 /** The body weight set with /weight, or null. */
@@ -411,11 +504,12 @@ export function addEntry(
 ): void {
   db()
     .prepare(
-      // The body weight is copied onto the entry, so a later /weight does not rescore it.
-      `INSERT INTO entries (guild_id, user_id, exercise_key, day_key, amount, created_at, weight, body_lb)
-       VALUES (?, ?, ?, ?, ?, ?, ?, (SELECT weight_lb FROM user_weight WHERE user_id = ?))`,
+      // The body weight, height and birth year are copied onto the entry, so a later /weight, /height or /age does not rescore it.
+      `INSERT INTO entries (guild_id, user_id, exercise_key, day_key, amount, created_at, weight, body_lb, height_cm, birth_year)
+       VALUES (?, ?, ?, ?, ?, ?, ?, (SELECT weight_lb FROM user_weight WHERE user_id = ?),
+               (SELECT height_cm FROM user_body WHERE user_id = ?), (SELECT birth_year FROM user_body WHERE user_id = ?))`,
     )
-    .run(guildId, userId, exerciseKey, dayKey, amount, DateTime.utc().toISO(), weight, userId);
+    .run(guildId, userId, exerciseKey, dayKey, amount, DateTime.utc().toISO(), weight, userId, userId, userId);
 }
 
 export function recentUsage(guildId: string, userId: string, sinceKey: string): Map<string, number> {

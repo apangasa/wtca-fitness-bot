@@ -138,6 +138,8 @@ const bad: [string, string[]][] = [
   ['a bad unit', ['approve', 'k', '--label', 'X', '--flat', '5', '--unit', 'furlongs']],
   ['--unit reps spelled out (not a cardio unit)', ['approve', 'k', '--label', 'X', '--flat', '5', '--unit', 'reps', '--table', 'abrolls']],
   ['--unit with a lift', ['approve', 'k', '--label', 'X', '--lift', '1,2,3,4', '--unit', 'flights', '--table', 'row']],
+  ['a height family that is not one', ['approve', 'k', '--label', 'X', '--lift', '1,2,3,4', '--height', 'pull', '--table', 'row']],
+  ['--height on a bodyweight price', ['approve', 'k', '--label', 'X', '--bw', '12', '--k', '1', '--reps', '2,10,20,32', '--height', 'press', '--table', 'dips']],
 ];
 for (const [name, args] of bad) {
   const parsed = ((): string | null => {
@@ -156,6 +158,13 @@ const g2 = parseApproveArgs(['approve', 'zz', '--label', 'Ring', '--bw', '12', '
 check('arguments: --assist and --reps land in the bodyweight record', g2.command === 'approve' && g2.pricing.kind === 'bw' && g2.pricing.assist === true && g2.pricing.reps?.join() === '2,10,20,32');
 const g3 = parseApproveArgs(['approve', 'k', '--label', 'X', '--lift', '19.5,30.5,44.5,61.5', '--one-side', '--table', 'bicepcurls']);
 check('arguments: --one-side lands in the lift record', g3.command === 'approve' && g3.pricing.kind === 'lift' && g3.pricing.oneSide === true);
+const g4 = parseApproveArgs(['approve', 'k', '--label', 'X', '--lift', '68,104,150,206', '--table', 'dbbench']);
+const g5 = parseApproveArgs(['approve', 'k', '--label', 'X', '--lift', '86,123,168,220', '--height', 'hinge', '--table', 'row']);
+const g6 = parseApproveArgs(['approve', 'k', '--label', 'X', '--lift', '86,123,168,220', '--table', 'row']);
+check('arguments: a lift on a family table takes its family, --height sets one, and other tables have none',
+  g4.command === 'approve' && g4.pricing.kind === 'lift' && g4.pricing.height === 'press' &&
+  g5.command === 'approve' && g5.pricing.kind === 'lift' && g5.pricing.height === 'hinge' &&
+  g6.command === 'approve' && g6.pricing.kind === 'lift' && g6.pricing.height === undefined);
 {
   const both = S.buildCurve({ kind: 'lift', oneRM: [39, 61, 89, 123], table: 'bicepcurls' });
   const one = S.buildCurve({ kind: 'lift', oneRM: [19.5, 30.5, 44.5, 61.5], table: 'bicepcurls', oneSide: true });
