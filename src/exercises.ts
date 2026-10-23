@@ -46,7 +46,7 @@ export const SEED_EXERCISES: ExerciseSeed[] = [
   { key: 'chinups', label: 'Chin-ups', unit: 'reps', weightNote: 'added load' },
   { key: 'situps', label: 'Sit-ups', unit: 'reps', weightNote: 'weight held on chest' },
   { key: 'abrolls', label: 'Ab-rolls', unit: 'reps' },
-  { key: 'squats', label: 'Squats', unit: 'reps', weightNote: 'added load' },
+  { key: 'squats', label: 'Squats', unit: 'reps', weightNote: 'bar + plates, or the weight held' },
   { key: 'run', label: 'Run', unit: 'mi' },
   // Appended, so existing sort_order values are untouched.
   { key: 'calfraises', label: 'Calf-raises', unit: 'reps', weightNote: 'dumbbells combined, or a held plate' },

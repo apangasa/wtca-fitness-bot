@@ -66,13 +66,20 @@ A bodyweight exercise with an added load uses the same curve. The effective weig
 
 Segment masses: Winter, *Biomechanics and Motor Control of Human Movement*, Table 4.1. A weight held on the chest sits further from the hip than the trunk's own centre of mass, so a pound there loads the abs somewhat more than a pound of trunk; this is not modelled.
 
-**Squat.** The squat follows the same rule as every other bodyweight exercise: its curve comes from its own reps table (3 / 26 / 58 / 98 reps, k = 1) and is scaled to its flat price at zero load. Strength Level's barbell squat table is not used, because it describes a different population (a barbell Beginner matches a bodyweight Novice, effective 1RM 282 against 280), and mixing the two needs a join with no evidence for its shape.
+**Squat** (decided 2026-10-23, **Season 2 only**). `/squats` is one command, priced two ways:
 
-| Bar | 0 | 45 lb | 90 lb | 135 lb | 185 lb | 225 lb |
-|---|---|---|---|---|---|---|
-| Price per rep | 4.4 | 8.3 | 13.1 | 17.0 | 21.8 | 25.5 |
+- **No weight:** a bodyweight squat at its flat price from its reps table (3 / 26 / 58 / 98 reps, 4.38 a rep at 150 lb), like every bodyweight exercise. A weight of 0 is the same.
+- **A weight:** Strength Level's barbell squat table (men, 1RM with the bar, 150 lb row 132 / 184 / 247 / 320 lb, read 2026-10-22, [source](https://strengthlevel.com/strength-standards/squat/lb)), with the person's whole body weight counted as load (k = 1), the rule in [Lifts that move the body](#lifts-that-move-the-body).
 
-For bars above about 124 lb this is lower than the barbell table would give (185 lb: 21.8 against 34.1). The heaviest logged squat bar is 105 lb.
+| Bar (150 lb) | none | 45 lb | 100 lb | 135 lb | 165 lb | 185 lb | 225 lb |
+|---|---|---|---|---|---|---|---|
+| Before | 4.4 | 8.3 | 13.9 | 17.0 | 19.8 | 21.8 | 25.5 |
+| Now | 4.4 | 1.1 | 8.2 | 18.9 | 28.2 | 34.1 | 46.7 |
+
+- **Why the barbell table for a weight.** Most squats logged in Season 2 are loaded, at about 100-165 lb. Each kind of squat is now ranked against the people who do it, and both tables are used whole, with nothing joined or scaled. The earlier curve stretched the bodyweight reps table to loaded squats; its upper anchors came from 58- and 98-rep sets and underpaid heavy bars (185 lb: 21.8 against 34.1).
+- **Why not the barbell table for bodyweight squats too.** Per rep, an unloaded squat on the barbell table pays 0.13, so a 26-rep Novice set would fall from 114 points to 3.3. Lift prices assume 8-rep sets, and a bodyweight squat set is 26 reps or more. For pull-ups the loaded and bodyweight tables agree within 3%; for squats they differ about 30 times.
+- **The cost.** Below 82 lb a loaded squat pays less than a bodyweight squat (45 lb: 1.1 against 4.38), so in that range more weight pays less. Nobody logs loads that light. The two curves cross at about 124 lb: lighter bars pay less than before, heavier ones more.
+- **Season 3 replaces this.** With each set's reps stored, every squat set, loaded or not, is priced from its estimated 1RM on the barbell table, which removes the split. Two issues to settle then: a Novice bodyweight set (26 reps) reads just under barbell Beginner, about one level low; and the reps-to-1RM conversion overstates leg 1RM on long sets (98 reps reads above Elite; the leg press reaches 19 reps at 70% of 1RM, against the conversion's 13, [Nuzzo et al., 2024](https://doi.org/10.1007/s40279-023-01937-7)).
 
 **Side-lying hip abduction** (`/sidelyinghipabduction`, decided 2026-10-17). Strength Level's floor hip abduction reps table (men, 150 lb row <1 / 9 / 27 / 50, read 2026-10-17, [source](https://strengthlevel.com/strength-standards/floor-hip-abduction/lb); "<1" read as 1) gives a flat price of 11.11 (implied 13.33 / 8.89). One rep is one leg's rep, and the weight is the ankle weight on that leg. It is a [one-side exercise](#one-side-exercises), so each rep pays half the curve.
 
@@ -169,7 +176,7 @@ The 1RM tables used (Beginner / Novice / Intermediate / Advanced, men at 150 lb;
 
 ## Lifts that move the body
 
-Some lifts move part of the lifter's body as well as the load: the split squats, the deadlift, both Romanian deadlifts, the good morning and the hip thrust. Pricing the logged weight alone paid 0 at 0 lb and almost nothing for light sets. Each counts **k × body weight as load, added both to the logged weight and to every 1RM in its table**, and is priced on that table's curve as usual (decided 2026-10-23). Each table keeps all four anchors and its own shape, and the price rises with every pound. The body weight is the person's own ([points-weight-class.md](points-weight-class.md)). A weight of 0, or none, is a rep with the body alone. The share is set per table, so a lift approved from the queue on one of these tables gets it too.
+Some lifts move part of the lifter's body as well as the load: the split squats, a squat with a weight (k = 1, [Squat](#weighted-bodyweight-exercises)), the deadlift, both Romanian deadlifts, the good morning and the hip thrust. Pricing the logged weight alone paid 0 at 0 lb and almost nothing for light sets. Each counts **k × body weight as load, added both to the logged weight and to every 1RM in its table**, and is priced on that table's curve as usual (decided 2026-10-23). Each table keeps all four anchors and its own shape, and the price rises with every pound. The body weight is the person's own ([points-weight-class.md](points-weight-class.md)). A weight of 0, or none, is a rep with the body alone. The share is set per table, so a lift approved from the queue on one of these tables gets it too.
 
 | Lift | k | Basis (Winter, Table 4.1, except the split squat) |
 |---|---|---|
@@ -196,7 +203,7 @@ The split squats' prices are under [Every lift has a table](#every-lift-has-a-ta
 
 - Per-rep pricing underpays short heavy sets and overpays long light ones. For an Intermediate bench lifter (1RM 183 lb), a 3-rep all-out set pays about 0.5 of what a 10-rep all-out set pays and a 20-rep set about 1.2; for a Novice (137 lb) the figures are about 0.6 and 0.8. Fixing this needs each set's reps stored.
 - The curve at the very light end and above the Advanced anchor is extrapolated.
-- Only 15 of 651 logged bodyweight-exercise entries have added weight (calf raise 6, squat 4, lunge 3, push-up 2), so the weighted-bodyweight curves are lightly exercised.
+- As of 2026-10-06, mostly from the bodyweight Season 1, only 15 of 651 logged bodyweight-exercise entries had added weight (calf raise 6, squat 4, lunge 3, push-up 2). Loaded squats are now common; the other weighted-bodyweight curves are still lightly exercised.
 
 ## Sources
 

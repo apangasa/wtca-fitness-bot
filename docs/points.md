@@ -76,7 +76,7 @@ Every lift in the bot is priced the same way, from Strength Level's 1RM table fo
 ## In the bot
 
 - **Logging a lift:** every lift is its own command, for example `/benchpress reps weight [sets]`. Weight is required and is the total load in lb: bar plus plates, both dumbbells combined, the stack setting, or the sled load. 3 sets of 8 at one weight is one command; different weights are separate logs.
-- **Bodyweight exercises** (`/squats`, `/lunges`, `/pushups`, `/pullups`, `/chinups`, `/situps`, `/calfraises`) take an optional weight, which is added load. With no weight the entry is a bodyweight rep at the flat price. Dips are logged as bodyweight reps.
+- **Bodyweight exercises** (`/squats`, `/lunges`, `/pushups`, `/pullups`, `/chinups`, `/situps`, `/calfraises`) take an optional weight, which is added load. With no weight the entry is a bodyweight rep at the flat price. A squat with a weight is priced on the barbell squat table for Season 2 ([points-lifts.md](points-lifts.md#weighted-bodyweight-exercises), "Squat"). Dips are logged as bodyweight reps.
 - **Leaderboards and races** for a weighted lift rank in points, because reps at different weights are different work. Plain exercises rank in their own unit.
 - **Points are computed per entry** at that entry's weight, so a day with 115 lb and 135 lb sets prices each correctly.
 - **Corrections:** `/undo` removes the latest entry (or one from a past day in the current season). There is no `/set`, because it cannot represent sets at different weights.

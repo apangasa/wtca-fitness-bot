@@ -135,6 +135,8 @@ export interface BodyweightSpec {
   table?: string;
   // One side at a time, each side's reps logged: every rep pays ONE_SIDE_FACTOR of the curve.
   oneSide?: boolean;
+  // With a weight logged, the rep is priced on this lift table instead (k x body weight counted as load); with none, it pays p.
+  loaded?: { oneRM: number[]; table: string; k: number };
 }
 
 export type PricingSpec =
@@ -147,6 +149,9 @@ export type PricingSpec =
 const PULLUP_EFFECTIVE_1RM = [144, 178, 216, 259];
 // Novice / Intermediate reps that give the pull-up's flat price.
 const PULLUP_FLAT_REPS: [number, number] = [7, 14];
+// docs/points-lifts.md, "Squat": a squat with a weight is priced on the barbell squat table (150 lb row), body weight counted as load.
+// Season 2 only: per-set pricing in Season 3 replaces this split between no weight and a weight.
+export const SQUAT_LOADED = { oneRM: [132, 184, 247, 320], table: 'squat', k: DECISIONS.K_FULL };
 
 function bodyweight(
   k: number,
@@ -164,7 +169,7 @@ export const BODYWEIGHT: Record<string, BodyweightSpec> = {
   chinups: bodyweight(DECISIONS.K_FULL, [8, 14], 'chinups', { reps: [1, 8, 14, 22] }),
   dips: bodyweight(DECISIONS.K_FULL, [10, 20], 'dips', { reps: [2, 10, 20, 32] }),
   situps: bodyweight(DECISIONS.K_SITUP, [27, 57], 'situps', { reps: [5, 27, 57, 94] }),
-  squats: bodyweight(DECISIONS.K_FULL, [26, 58], 'squats', { reps: [3, 26, 58, 98] }),
+  squats: { ...bodyweight(DECISIONS.K_FULL, [26, 58], 'squats', { reps: [3, 26, 58, 98] }), loaded: { ...SQUAT_LOADED, oneRM: [...SQUAT_LOADED.oneRM] } },
   // Strength Level's Beginner is "<1" lunge reps; 1 is used (an assumption, it only shapes the curve below Beginner).
   lunges: { ...bodyweight(DECISIONS.K_FULL, [14, 38], 'lunges', { reps: [1, 14, 38, 68] }), oneSide: true },
   calfraises: bodyweight(DECISIONS.K_FULL, [30, 63], 'calfraises', { reps: [7, 30, 63, 102], p: DECISIONS.CALF_RAISE_FLAT }),
@@ -263,8 +268,16 @@ export function liftCurve(oneRM: readonly number[], table?: string, bodyLb: numb
   return (w) => price(offset + Math.max(w ?? 0, 0));
 }
 
-/** Bodyweight curve: load = k x body weight + added load, scaled so a no-load rep pays p; assisted subtracts the assistance (none logged = 0). */
+/**
+ * Bodyweight curve: load = k x body weight + added load, scaled so a no-load rep pays p; assisted subtracts the assistance (none logged = 0).
+ * With `loaded`, no weight pays p and a weight is priced on that lift table instead.
+ */
 export function bodyweightCurve(spec: BodyweightSpec, bodyLb: number = SCORING.BODY_LB): Curve {
+  if (spec.loaded) {
+    const p = spec.p * flatFactor(spec.table, bodyLb);
+    const lift = liftCurve(spec.loaded.oneRM, spec.loaded.table, bodyLb, spec.loaded.k);
+    return (w) => (w === null || w <= 0 ? p : lift(w));
+  }
   const b = spec.table !== undefined ? bodyLb : SCORING.BODY_LB;
   const offset = spec.k * b;
   let oneRM: number[];
@@ -339,6 +352,13 @@ export function pricingProblem(spec: unknown): string | null {
   if ((s.reps !== undefined) === (s.oneRM !== undefined)) return 'a bodyweight curve needs exactly one of reps or oneRM';
   if (!anchors(s.reps ?? s.oneRM)) return 'reps / oneRM are four increasing positive numbers (Beginner, Novice, Intermediate, Advanced)';
   if (s.assist !== undefined && typeof s.assist !== 'boolean') return 'assist is true or false';
+  if (s.loaded !== undefined) {
+    const l = s.loaded as Record<string, unknown> | null;
+    if (typeof l !== 'object' || l === null || s.assist) return 'loaded is a lift table for reps with a weight, and not on an assisted exercise';
+    if (!anchors(l.oneRM)) return 'loaded needs four increasing positive 1RMs (Beginner, Novice, Intermediate, Advanced)';
+    if (typeof l.table !== 'string' || !tableNamed(LIFT_TABLES, l.table)) return `loaded names "${String(l.table)}", which is not a lift table in src/strengthLevelTables.ts`;
+    if (!kValid(l.k)) return kProblem;
+  }
   return null;
 }
 

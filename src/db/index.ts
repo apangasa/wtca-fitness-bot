@@ -6,6 +6,7 @@ import { SEED_EXERCISES } from '../exercises.js';
 import {
   LIFT_BODY_SHARE,
   SCORING,
+  SQUAT_LOADED,
   assertCatalog,
   catalogPricing,
   curveForRow,
@@ -371,6 +372,21 @@ function migrateAfterSeed(conn: Database.Database): void {
       }
     })();
     conn.pragma('user_version = 15');
+    invalidateScoring();
+  }
+  if (version < 16) {
+    // Migration 16: a squat with a weight is priced on the barbell squat table, body weight counted as load (docs/points-lifts.md, "Squat").
+    // Season 2 only. The no-weight price and the rest of the stored record are kept as tuned.
+    const row = conn.prepare("SELECT pricing FROM exercises WHERE key = 'squats'").get() as { pricing: string | null } | undefined;
+    const spec = parsePricing(row?.pricing ?? null);
+    if (spec?.kind === 'bw' && spec.loaded === undefined) {
+      const cols = pricingColumns({ ...spec, loaded: { ...SQUAT_LOADED, oneRM: [...SQUAT_LOADED.oneRM] } });
+      conn.prepare("UPDATE exercises SET pricing = ?, points_per_rep = ? WHERE key = 'squats'").run(cols.json, cols.display);
+    }
+    // The weight hint says what to enter now: the bar and plates. Seeds only insert, so the stored row's hint is moved here.
+    const note = SEED_EXERCISES.find((e) => e.key === 'squats')?.weightNote;
+    if (note) conn.prepare("UPDATE exercises SET weight_note = ? WHERE key = 'squats' AND weight_note = 'added load'").run(note);
+    conn.pragma('user_version = 16');
     invalidateScoring();
   }
 }

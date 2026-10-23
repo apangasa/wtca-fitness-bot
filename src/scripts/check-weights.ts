@@ -65,7 +65,7 @@ if (reopen) {
   check('reopen: a curve tuned in the database survives a restart', JSON.stringify(bench.pricing) === JSON.stringify({ kind: 'lift', oneRM: [100, 140, 190, 240] }), JSON.stringify(bench.pricing));
   check('reopen: a hand-set run price is not put back to 521 by the migration', q.getExercise('run')!.pricing?.kind === 'flat' && (q.getExercise('run')!.pricing as { p: number }).p === 777);
   check('reopen: burpees tuned to 11 are not repriced again', (q.getExercise('burpees')!.pricing as { p: number }).p === 11);
-  check('reopen: the migration did not run again (user_version 15, an unusable record is not repaired behind your back)', userVersion() === 15 && q.getExercise('abrolls')!.pricing === null);
+  check('reopen: the migration did not run again (user_version 16, an unusable record is not repaired behind your back)', userVersion() === 16 && q.getExercise('abrolls')!.pricing === null);
   const machineRe = q.getExercise('machinelatpulldown')!;
   check('reopen: migration 9 moved the live-style machine lat pulldown record from the doubled to the x1.5 anchors (and its reference weight)', machineRe.pricing?.kind === 'lift' && machineRe.pricing.oneRM.join() === '133.5,186,249,322.5' && machineRe.refWeight !== null && near(machineRe.refWeight, (29 / 36) * 186, 1e-9), JSON.stringify(machineRe));
   const bssRe = q.getExercise('barbellbulgariansplitsquat')!;
@@ -89,6 +89,7 @@ if (reopen) {
 const squat = q.getExercise('squats')!;
 check('squats become weighted, add mode, ref 150', squat.refWeight === 150 && squat.weightMode === 'add');
 check('squats carry the bodyweight curve record', squat.pricing?.kind === 'bw' && near(squat.pricing.p, implied(26, 58)), JSON.stringify(squat.pricing));
+check('migration 16: stored squats price a weight on the barbell squat table, k = 1', squat.pricing?.kind === 'bw' && squat.pricing.loaded?.table === 'squat' && squat.pricing.loaded.oneRM.join() === '132,184,247,320' && squat.pricing.loaded.k === 1, JSON.stringify(squat.pricing));
 check('the old /leg-press key is gone', q.getExercise('leg-press') === null);
 const legPress = q.getExercise('legpress')!;
 check('leg press is now legpress, a lift priced by its 1RM table', legPress.pricing?.kind === 'lift' && legPress.refWeight !== null, JSON.stringify(legPress.pricing));
@@ -132,7 +133,7 @@ const oldRun = q.dayTotals(GUILD, '2026-09-12').find((t) => t.exerciseKey === 'r
 check('the 3-mile run logged before was backfilled to 3 x 521.14', !!oldRun && near(oldRun.points, 3 * RUN), String(oldRun?.points));
 const swimEx = q.getExercise('swim');
 check('swim exists at 1.0286 per yard', swimEx?.pricing?.kind === 'flat' && near(swimEx.pricing.p, SWIM) && swimEx.unit === 'yd', JSON.stringify(swimEx));
-check('the one-shot upgrades are recorded (user_version 15)', userVersion() === 15);
+check('the one-shot upgrades are recorded (user_version 16)', userVersion() === 16);
 const machineLat = q.getExercise('machinelatpulldown')!;
 check('machine lat pulldown is seeded as a lift on the lat pulldown anchors x1.5 and its own table', machineLat.label === 'Machine Lat Pulldown' && machineLat.pricing?.kind === 'lift' && machineLat.pricing.table === 'machinelatpulldown' && machineLat.pricing.oneRM.join() === '133.5,186,249,322.5' && machineLat.refWeight !== null, JSON.stringify(machineLat));
 check('a stack setting of 1.5w on the machine lat pulldown pays what w pays on the plain lat pulldown, at 150 lb and at 220 lb', [150, 220].every((bw) => [50, 72.5, 90, 100].every((w) => near(buildCurve(catalogPricing('machinelatpulldown')!, bw)(1.5 * w), buildCurve(catalogPricing('latpulldown')!, bw)(w), 1e-9))));
@@ -151,7 +152,7 @@ spec('pull-up with weight 0 = its bodyweight price', model('pullups', 0), implie
 spec('hammer curl 50 lb combined = 15.88 a rep', model('hammercurls', 50), 15.88, 15.88 * 0.005);
 spec('bench @ 100 lb = 9.83 a rep', model('benchpress', 100), 9.83, 9.83 * 0.005);
 spec('bench single at 200 lb = 53', model('benchpress', 200), 53, 0.6);
-spec('squat with a 185 lb bar = about 21.8 a rep (0.5%)', model('squats', 185), 21.8, 21.8 * 0.005);
+spec('squat with a 185 lb bar = about 34.1 a rep (0.5%)', model('squats', 185), 34.1, 34.1 * 0.005);
 spec('bodyweight squat = 4.4 (unrounded 4.3767)', model('squats', null), 4.4, 0.03);
 spec('bodyweight squat is exactly the flat mean', model('squats', null), implied(26, 58), 1e-12);
 spec('cable crunch 40 lb stack = 4.07 a rep', model('cablecrunch', 40), 4.07, 0.03);
@@ -161,8 +162,11 @@ spec('zero weight on a lift scores 0', model('benchpress', 0), 0, 0);
 spec('no weight on a lift scores 0', model('benchpress', null), 0, 0);
 const assistTable = [0, 10, 20, 30, 40, 50].map((a) => model('assistedpullups', a));
 check(`assisted pull-up table (docs/points-lifts.md) within 0.15: ${assistTable.map((x) => x.toFixed(1)).join(' ')}`, [17.1, 12.5, 7.7, 4.5, 2.6, 1.4].every((v, i) => near(assistTable[i]!, v, 0.15)));
-const squatTable = [0, 45, 90, 135, 185, 225].map((a) => model('squats', a));
-check(`squat table (docs/points-lifts.md) within 0.2: ${squatTable.map((x) => x.toFixed(1)).join(' ')}`, [4.4, 8.3, 13.1, 17.0, 21.8, 25.5].every((v, i) => near(squatTable[i]!, v, 0.2)));
+const squatTable = [0, 45, 100, 135, 165, 185, 225].map((a) => model('squats', a));
+check(`squat table (docs/points-lifts.md) within 0.1: ${squatTable.map((x) => x.toFixed(1)).join(' ')}`, [4.4, 1.1, 8.2, 18.9, 28.2, 34.1, 46.7].every((v, i) => near(squatTable[i]!, v, 0.1)));
+spec('a squat with 0 lb is a bodyweight squat', model('squats', 0), implied(26, 58), 1e-12);
+check('a squat with a weight rises with every pound (1 to 315 lb)', [1, 5, 45, 82, 100, 135, 185, 225, 315].every((w, i, a) => i === 0 || model('squats', w) > model('squats', a[i - 1]!)));
+check('a squat with 82 lb or more pays more than a bodyweight squat, and 81 lb less (Season 2 limit, docs/points-lifts.md)', model('squats', 82) > implied(26, 58) && model('squats', 81) < implied(26, 58));
 const ccTable = [20, 30, 40, 60].map((w) => model('cablecrunch', w));
 check(`cable crunch (docs/points-lifts.md) 0.8 / 2.0 / 4.1 / 10.9: ${ccTable.map((x) => x.toFixed(2)).join(' ')}`, [0.8, 2.0, 4.1, 10.9].every((v, i) => near(ccTable[i]!, v, 0.1)));
 const flats: [string, number][] = [['pushups', implied(20, 40)], ['pullups', implied(7, 14)], ['dips', implied(10, 20)], ['chinups', implied(8, 14)], ['situps', implied(27, 57)], ['legraise', implied(12, 31)], ['squats', implied(26, 58)], ['lunges', implied(14, 38) * ONE_SIDE], ['abrolls', implied(7, 21)], ['abrollsassisted', implied(7, 21) * 0.64], ['burpees', implied(10, 35)], ['calfraises', 1.4], ['flightofstairs', 0], ['anklealphabet', 0], ['run', RUN], ['swim', SWIM]];
@@ -463,9 +467,11 @@ const { LIFT_1RM } = S;
     const price = S.liftPrice(reps.map((r) => off / S.repsToFraction(r)));
     return (p / price(off)) * price(off + w);
   };
-  check('weighted bodyweight curve at B = 150 equals the plain construction (push-up, squat)',
+  check('weighted bodyweight curve at B = 150 equals the plain construction (push-up)',
     near(S.buildCurve(S.catalogPricing('pushups')!, 150)(25), man(0.7, [5, 20, 40, 64], 6, 25), 1e-12) &&
-      near(S.buildCurve(S.catalogPricing('squats')!, 150)(185), man(1, [3, 26, 58, 98], implied(26, 58), 185), 1e-12));
+      near(S.buildCurve(S.catalogPricing('pushups')!, 150)(0), 6, 1e-12));
+  check('a weighted squat at B = 150 is the barbell squat table with 150 lb added to the load and every 1RM',
+    near(S.buildCurve(S.catalogPricing('squats')!, 150)(185), S.liftPrice([132, 184, 247, 320].map((x) => x + 150))(150 + 185), 1e-12) && eq(T.tableAt(T.LIFT_TABLES.squat!, 150), [132, 184, 247, 320]));
   {
     // Every no-load price is p150 x implied(row at B) / implied(row at 150).
     const impliedAt = (key: string, b: number): number => { const r = T.tableAt(T.REPS_TABLES[key]!, b); return implied(r[1], r[2]); };
